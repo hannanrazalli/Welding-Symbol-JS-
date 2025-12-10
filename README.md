@@ -448,7 +448,7 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                         <path d="M0,0 L70,0 L78,15 L0,15 Z" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
                         <path d="M82,15 L90,0 L160,0 L160,15 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
                         {/* FIX: Updated t3 rect to use getStroke('t3') and getWidth('t3') and plate3Fill */}
-                        <rect x="72" y="15" width="16" height="60" fill={plate3Fill} stroke={getStroke('t3')} strokeWidth={getWidth('t3')} />
+                        <rect x="72" y="15" width="16" height="60" fill={plate3Fill} stroke="black" />
                         <line x1="70" y1="0" x2="78" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
                         <line x1="90" y1="0" x2="82" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
                         <text x="40" y="-5" className="text-[10px]" fill={getStroke('t1')}>t1</text>
@@ -553,7 +553,7 @@ const ParameterDiagram = ({ jointType, fig }) => {
 }
  
 // --- RESULT RENDERER (STABLE - NO DIMS) ---
-const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun, hasAdditionalFillet }) => {
+const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun, hasAdditionalFillet, weldSide }) => {
   const { jointType, cornerOption, angle, gap, rootFace } = inputs;
   const fig = data?.fig_type || "unknown";
   const s = data.symbol;
@@ -687,22 +687,23 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                 {fig === 't_k' ? (
                                      // Double Bevel (K) with Visible Root Face & Gap
                                      // Web bottom at 95 (gap of 5). Root face width 6 (center 100).
-                                     <path d="M90,20 L110,20 L110,80 L103,95 L97,95 L90,80 Z" fill={plateFill} stroke="black" />
+                                     <path d="M90,20 L110,20 L110,80 L103,95 L97,95 L90,80 Z" fill={plate2Fill} stroke="black" />
                                 ) : fig.includes('hv') ? (
                                      // HV: Single Bevel with Gap (y=95)
-                                     <path d="M90,20 L110,20 L110,95 L100,95 L90,80 Z" fill={plateFill} stroke="black" />
+                                     <path d="M90,20 L110,20 L110,95 L100,95 L90,80 Z" fill={plate2Fill} stroke="black" />
                                 ) : fig.includes('hy') ? (
                                      // HY: Single Bevel NO Gap (y=100) - Touching plate
                                      // Ensure web sits on flange at y=100
-                                     <path d="M90,20 L110,20 L110,100 L100,100 L90,80 L90,20 Z" fill={plateFill} stroke="black" />
+                                     <path d="M90,20 L110,20 L110,100 L100,100 L90,80 L90,20 Z" fill={plate2Fill} stroke="black" />
                                 ) : (
                                      // Square
-                                     <rect x="90" y="20" width="20" height="80" fill={plateFill} stroke="black" />
+                                     <rect x="90" y="20" width="20" height="80" fill={plate2Fill} stroke="black" />
                                 )}
  
                                 {fig === 't_fillet' && <><path d="M90,100 L90,80 L70,100 Z" fill={weldFill} stroke="black" /><path d="M110,100 L110,80 L130,100 Z" fill={weldFill} stroke="black" /></>}
                                 
-                                {fig.includes('hv') && <path d="M90,80 L100,95 L110,95 L110,100 L70,100 Z" fill={weldFill} stroke="black" /> }
+                                {/* Standard HV/HY Welds */}
+                                {fig.includes('hv') && weldSide !== '2-sided' && <path d="M90,80 L100,95 L110,95 L110,100 L70,100 Z" fill={weldFill} stroke="black" /> }
                                 
                                 {fig.includes('hy') && <path d="M90,80 L100,100 L70,100 Z" fill={weldFill} stroke="black" />}
                                 
@@ -720,8 +721,21 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                 {/* MODIFIED: Backing Bar for HV - Vertical behind web (x=110), sitting on flange (y=100) */}
                                 {hasBacking && fig === 't_hv' && <rect x="110" y="80" width="5" height="20" fill={backingColor} stroke="black" />}
                                 
+                                {/* SPECIAL CASE: T-JOINT HV 2-SIDED (Flush Left + Fillet Right) */}
+                                {fig === 't_hv' && weldSide === '2-sided' && (
+                                    <>
+                                        {/* Left Weld (Flush with Web x=90) */}
+                                        {/* Path fills the bevel area: 90,80 -> 100,95 -> 110,95 -> 110,100 -> 90,100 */}
+                                        <path d="M90,80 L100,95 L110,95 L110,100 L90,100 Z" fill={weldFill} stroke="black" />
+                                        
+                                        {/* Right Weld (Standard Fillet) */}
+                                        <path d="M110,80 L110,100 L130,100 Z" fill={weldFill} stroke="black" />
+                                    </>
+                                )}
+ 
                                 {/* Sealing Run - T-Joint (HV) - usually on the other side of the bevel? For T-HV, sealing run is typically on the other side (fillet-like or just bead) */}
-                                {hasSealingRun && fig === 't_hv' && (
+                                {/* Only show if NOT 2-sided case handled above */}
+                                {hasSealingRun && fig === 't_hv' && weldSide !== '2-sided' && (
                                     <path d="M110,100 L115,95 L115,105 Z" fill={weldFill} stroke="black" opacity="0.8"/>
                                 )}
                                 
@@ -731,11 +745,10 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                     <path d="M90,80 Q105,90 70,100" fill={weldFill} stroke="black" opacity="0.6"/> // Simple representation: bulging out
                                 )}
                                 
-                                {/* HV Dimension */}
-                                {fig.includes('hv') && (
+                                {/* HV Dimension - Hide if 2-sided */}
+                                {fig.includes('hv') && weldSide !== '2-sided' && (
                                     <g>
                                        {/* Existing weld path */}
-                                       <path d="M90,80 L100,95 L110,95 L110,100 L70,100 Z" fill={weldFill} stroke="black" />
                                        
                                        {/* NEW: Dimension b */}
                                        <line x1="112" y1="95" x2="122" y2="95" stroke="#ef4444" strokeWidth="0.5" />
@@ -1015,10 +1028,16 @@ export default function App() {
          setHasBacking(false);
      }
  
-     // Force Sealing Run for T-Joint 2-Sided HV
-     if (jointType === 't_joint' && weldSide === '2-sided' && s === 'HV') {
-         setHasSealingRun(true);
-     } else if (weldSide !== '2-sided') {
+     // Auto set Sealing Run for 2-sided Butt V/HV and T-Joint HV
+     if (weldSide === '2-sided') {
+         if (jointType === 'butt' && (s === 'V' || s === 'HV')) {
+             setHasSealingRun(true);
+         } else if (jointType === 't_joint' && s === 'HV') {
+             setHasSealingRun(true);
+         } else {
+             setHasSealingRun(false); // Or maintain prev logic if needed
+         }
+     } else {
          setHasSealingRun(false);
      }
       
@@ -1279,7 +1298,7 @@ export default function App() {
                 </div>
                 <div className="border rounded bg-white p-3 shadow-sm mb-4">
                      <h4 className="text-xs font-bold text-gray-500 mb-2 border-b">Fig 1: Cross Section</h4>
-                     <div className="h-64 flex items-center justify-center bg-gray-50"><ResultRenderer data={currentWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet}/></div>
+                     <div className="h-64 flex items-center justify-center bg-gray-50"><ResultRenderer data={currentWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} weldSide={weldSide}/></div>
                 </div>
                 <div className="border rounded bg-white p-3 shadow-sm mb-4">
                      <h4 className="text-xs font-bold text-gray-500 mb-2 border-b">Fig 2: Symbol</h4>
