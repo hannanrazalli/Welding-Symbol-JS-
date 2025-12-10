@@ -1159,10 +1159,11 @@ export default function App() {
                                 type="checkbox" 
                                 id="sealing"
                                 checked={hasSealingRun} 
+                                disabled={true} // Since showSealingRunOption is only true for 2-sided Butt V/HV, which the user wants mandatory.
                                 onChange={(e) => setHasSealingRun(e.target.checked)} 
-                                className="w-4 h-4 text-blue-600 rounded"
+                                className="w-4 h-4 text-blue-600 rounded disabled:opacity-50"
                             />
-                            <label htmlFor="sealing" className="text-xs font-bold text-slate-600">With Sealing Run</label>
+                            <label htmlFor="sealing" className="text-xs font-bold text-slate-600">With Sealing Run (Mandatory)</label>
                         </div>
                     )}
  
