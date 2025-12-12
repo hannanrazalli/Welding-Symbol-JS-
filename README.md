@@ -264,7 +264,7 @@ const calculateWeldSize = (weldType, t1, t2, rootFace) => {
         }
     } else if (weldType.symbol === 'HY' || weldType.symbol === 'Y') {
         return `${Number(t1) - Number(rootFace)}`;
-    } else if (['HV', 'V', 'K', 'X'].includes(weldType.symbol)) {
+    } else if (['HV', 'V', 'K', 'X', 'I'].includes(weldType.symbol)) {
         return `${t1}`; 
     }
     return "";
@@ -305,7 +305,10 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                 {jointType === 'butt' && (
                   <g transform="translate(50, 30)">
                     {/* LEFT PLATE */}
-                    {fig === 'butt_v' ? (
+                    {(fig === 'butt_sq' || fig === 'butt_half_sq') ? (
+                        // Square Edge / Half Square (Both rendered as Square for visual simplicity in input)
+                        <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                    ) : fig === 'butt_v' ? (
                         <path d="M20,60 L80,60 L95,80 L95,90 L20,90 Z" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
                     ) : fig === 'butt_hv' ? (
                         // HV: Single Bevel - Left plate square (ends at 95), Right plate beveled
@@ -328,7 +331,9 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                     )}
  
                     {/* RIGHT PLATE */}
-                    {fig === 'butt_v' ? (
+                    {(fig === 'butt_sq' || fig === 'butt_half_sq') ? (
+                        <rect x="105" y="60" width="75" height="30" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                    ) : fig === 'butt_v' ? (
                         <path d="M180,60 L120,60 L105,80 L105,90 L180,90 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
                     ) : fig === 'butt_hv' ? (
                          // HV: Right plate beveled. Matching V-weld right plate
@@ -427,8 +432,8 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                   <g transform="translate(100, 70)">
                      {/* Defaulting to option 1 visual since hasOptions is removed */}
                      <g>
-                        <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
-                        <rect x="20" y="0" width="60" height="20" fill={plateFill} stroke="black" />
+                        <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                        <rect x="20" y="0" width="60" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
                         <circle cx="20" cy="20" r="2" fill="red" opacity="0.5" />
                         <text x="-15" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
                         <text x="50" y="-10" className="text-[10px]" fill={getStroke('t2')}>t2</text>
@@ -602,73 +607,84 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                     <>
                         {jointType === 'butt' && (
                             <g transform="translate(50, 30)">
-                                {fig === 'butt_v' ? <path d="M20,60 L80,60 L95,80 L95,90 L20,90 Z" fill={plateFill} stroke="black" /> : <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" />}
-                                {fig === 'butt_v' ? <path d="M180,60 L120,60 L105,80 L105,90 L180,90 Z" fill={plateFill} stroke="black" /> : <rect x="105" y="60" width="75" height="30" fill={plateFill} stroke="black" />}
-                                {fig === 'butt_v' && <path d="M80,60 L120,60 L105,80 L105,90 L95,90 L95,80 Z" fill={weldFill} stroke="black" />}
-                                {fig === 'butt_v' && <path d="M80,60 L120,60 L100,55 Z" fill={weldFill} stroke="black" opacity="0.5" />}
-                                
-                                {fig === 'butt_hv' ? <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" /> : null}
-                                {fig === 'butt_hv' ? <path d="M180,60 L105,60 L95,90 L180,90 Z" fill={plateFill} stroke="black" /> : null}
-                                {fig === 'butt_hv' && <path d="M95,60 L120,60 L105,80 L105,90 L95,90 Z" fill={weldFill} stroke="black" />}
-                                {fig === 'butt_hv' && <path d="M95,60 L120,60 L107.5,55 Z" fill={weldFill} stroke="black" opacity="0.5" />}
- 
-                                {fig === 'butt_y' && (
+                                {(fig === 'butt_sq' || fig === 'butt_half_sq') ? (
                                     <>
-                                        {/* Y-Weld: No Gap, Touching at root */}
-                                        {/* Left Plate: Root Face at bottom */}
-                                        <path d="M20,60 L80,60 L100,80 L100,90 L20,90 Z" fill={plateFill} stroke="black" />
-                                        {/* Right Plate */}
-                                        <path d="M180,60 L120,60 L100,80 L100,90 L180,90 Z" fill={plateFill} stroke="black" />
-                                        {/* Weld Fill */}
-                                        <path d="M80,60 L120,60 L100,80 Z" fill={weldFill} stroke="black" />
-                                    </>
-                                )}
- 
-                                {fig === 'butt_hy' && (
-                                    <>
-                                        {/* Left Plate: Square (Ends at 100) */}
-                                        <rect x="20" y="60" width="80" height="30" fill={plateFill} stroke="black" />
-                                        {/* Right Plate: Bevel with root face, RAPAT (Starts at 100) */}
-                                        <path d="M180,60 L115,60 L100,80 L100,90 L180,90 Z" fill={plateFill} stroke="black" />
-                                        {/* Weld Fill */}
-                                        <path d="M100,60 L115,60 L100,80 Z" fill={weldFill} stroke="black" />
-                                        {/* Weld Cap/Reinforcement (Optional, to match HV style) */}
-                                        <path d="M100,60 L115,60 L107.5,55 Z" fill={weldFill} stroke="black" opacity="0.5" />
-                                    </>
-                                )}
-                                
-                                {/* X-Weld (Double V) - Visual Gap & Root Face Update */}
-                                {fig === 'butt_x' && (
-                                    <>
-                                        {/* Left Plate: Gap 2px from center (100), Root 3px high from mid (75) */}
-                                        <path d="M20,60 L80,60 L98,72 L98,78 L80,90 L20,90 Z" fill={plateFill} stroke="black" />
-                                        {/* Right Plate */}
-                                        <path d="M180,60 L120,60 L102,72 L102,78 L120,90 L180,90 Z" fill={plateFill} stroke="black" />
-                                        {/* Weld Fills */}
-                                        <path d="M80,60 L120,60 L102,72 L98,72 Z" fill={weldFill} stroke="black" />
-                                        <path d="M80,90 L120,90 L102,78 L98,78 Z" fill={weldFill} stroke="black" />
-                                        {/* Gap Fill */}
-                                        <rect x="98" y="72" width="4" height="6" fill={weldFill} stroke="none" opacity="0.5"/>
-                                    </>
-                                )}
-                                
-                                {/* K-Weld Butt (Double Bevel) */}
-                                {fig === 'butt_k' && (
-                                    <>
-                                        {/* Left Plate: Square */}
+                                        {/* Square Edge Plates */}
                                         <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" />
-                                        {/* Right Plate: Double Bevel WITH ROOT FACE (Same as Input Guide) */}
-                                        {/* M180,60 L120,60 L105,72 L105,78 L120,90 L180,90 Z */}
-                                        <path d="M180,60 L120,60 L105,72 L105,78 L120,90 L180,90 Z" fill={plateFill} stroke="black" />
+                                        <rect x="105" y="60" width="75" height="30" fill={plateFill} stroke="black" />
+                                        {/* Weld Fill (Red Rectangle in Gap) */}
+                                        <rect x="95" y="60" width="10" height="30" fill={weldFill} stroke="black" />
+                                    </>
+                                ) : (
+                                    <>
+                                        {fig === 'butt_v' ? <path d="M20,60 L80,60 L95,80 L95,90 L20,90 Z" fill={plateFill} stroke="black" /> : <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" />}
+                                        {fig === 'butt_v' ? <path d="M180,60 L120,60 L105,80 L105,90 L180,90 Z" fill={plateFill} stroke="black" /> : <rect x="105" y="60" width="75" height="30" fill={plateFill} stroke="black" />}
+                                        {fig === 'butt_v' && <path d="M80,60 L120,60 L105,80 L105,90 L95,90 L95,80 Z" fill={weldFill} stroke="black" />}
+                                        {/* REMOVED REINFORCEMENT: {fig === 'butt_v' && <path d="M80,60 L120,60 L100,55 Z" fill={weldFill} stroke="black" opacity="0.5" />} */}
                                         
-                                        {/* Weld Fills - Matching Top/Bottom Bevels */}
-                                        {/* Top: Connects 95,60 -> 120,60 -> 105,72 -> 95,72 */}
-                                        <path d="M95,60 L120,60 L105,72 L95,72 Z" fill={weldFill} stroke="black" />
-                                        {/* Bottom: Connects 95,90 -> 120,90 -> 105,78 -> 95,78 */}
-                                        <path d="M95,90 L120,90 L105,78 L95,78 Z" fill={weldFill} stroke="black" />
+                                        {fig === 'butt_hv' ? <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" /> : null}
+                                        {fig === 'butt_hv' ? <path d="M180,60 L105,60 L95,90 L180,90 Z" fill={plateFill} stroke="black" /> : null}
+                                        {fig === 'butt_hv' && <path d="M95,60 L120,60 L105,80 L105,90 L95,90 Z" fill={weldFill} stroke="black" />}
+                                        {/* REMOVED REINFORCEMENT: {fig === 'butt_hv' && <path d="M95,60 L120,60 L107.5,55 Z" fill={weldFill} stroke="black" opacity="0.5" />} */}
+        
+                                        {fig === 'butt_y' && (
+                                            <>
+                                                {/* Y-Weld: No Gap, Touching at root */}
+                                                {/* Left Plate: Root Face at bottom */}
+                                                <path d="M20,60 L80,60 L100,80 L100,90 L20,90 Z" fill={plateFill} stroke="black" />
+                                                {/* Right Plate */}
+                                                <path d="M180,60 L120,60 L100,80 L100,90 L180,90 Z" fill={plateFill} stroke="black" />
+                                                {/* Weld Fill */}
+                                                <path d="M80,60 L120,60 L100,80 Z" fill={weldFill} stroke="black" />
+                                            </>
+                                        )}
+        
+                                        {fig === 'butt_hy' && (
+                                            <>
+                                                {/* Left Plate: Square (Ends at 100) */}
+                                                <rect x="20" y="60" width="80" height="30" fill={plateFill} stroke="black" />
+                                                {/* Right Plate: Bevel with root face, RAPAT (Starts at 100) */}
+                                                <path d="M180,60 L115,60 L100,80 L100,90 L180,90 Z" fill={plateFill} stroke="black" />
+                                                {/* Weld Fill */}
+                                                <path d="M100,60 L115,60 L100,80 Z" fill={weldFill} stroke="black" />
+                                                {/* REMOVED REINFORCEMENT */}
+                                            </>
+                                        )}
                                         
-                                        {/* Gap Fill - Between x=95 and x=105 for the Root Face height */}
-                                        <rect x="95" y="72" width="10" height="6" fill={weldFill} stroke="none" opacity="0.5"/>
+                                        {/* X-Weld (Double V) - Visual Gap & Root Face Update */}
+                                        {fig === 'butt_x' && (
+                                            <>
+                                                {/* Left Plate: Gap 2px from center (100), Root 3px high from mid (75) */}
+                                                <path d="M20,60 L80,60 L98,72 L98,78 L80,90 L20,90 Z" fill={plateFill} stroke="black" />
+                                                {/* Right Plate */}
+                                                <path d="M180,60 L120,60 L102,72 L102,78 L120,90 L180,90 Z" fill={plateFill} stroke="black" />
+                                                {/* Weld Fills */}
+                                                <path d="M80,60 L120,60 L102,72 L98,72 Z" fill={weldFill} stroke="black" />
+                                                <path d="M80,90 L120,90 L102,78 L98,78 Z" fill={weldFill} stroke="black" />
+                                                {/* Gap Fill */}
+                                                <rect x="98" y="72" width="4" height="6" fill={weldFill} stroke="none" opacity="0.5"/>
+                                            </>
+                                        )}
+                                        
+                                        {/* K-Weld Butt (Double Bevel) */}
+                                        {fig === 'butt_k' && (
+                                            <>
+                                                {/* Left Plate: Square */}
+                                                <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" />
+                                                {/* Right Plate: Double Bevel WITH ROOT FACE (Same as Input Guide) */}
+                                                {/* M180,60 L120,60 L105,72 L105,78 L120,90 L180,90 Z */}
+                                                <path d="M180,60 L120,60 L105,72 L105,78 L120,90 L180,90 Z" fill={plateFill} stroke="black" />
+                                                
+                                                {/* Weld Fills - Matching Top/Bottom Bevels */}
+                                                {/* Top: Connects 95,60 -> 120,60 -> 105,72 -> 95,72 */}
+                                                <path d="M95,60 L120,60 L105,72 L95,72 Z" fill={weldFill} stroke="black" />
+                                                {/* Bottom: Connects 95,90 -> 120,90 -> 105,78 -> 95,78 */}
+                                                <path d="M95,90 L120,90 L105,78 L95,78 Z" fill={weldFill} stroke="black" />
+                                                
+                                                {/* Gap Fill - Between x=95 and x=105 for the Root Face height */}
+                                                <rect x="95" y="72" width="10" height="6" fill={weldFill} stroke="none" opacity="0.5"/>
+                                            </>
+                                        )}
                                     </>
                                 )}
  
@@ -702,17 +718,17 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
  
                                 {fig === 't_fillet' && <><path d="M90,100 L90,80 L70,100 Z" fill={weldFill} stroke="black" /><path d="M110,100 L110,80 L130,100 Z" fill={weldFill} stroke="black" /></>}
                                 
-                                {/* Standard HV/HY Welds */}
-                                {fig.includes('hv') && weldSide !== '2-sided' && <path d="M90,80 L100,95 L110,95 L110,100 L70,100 Z" fill={weldFill} stroke="black" /> }
+                                {/* Standard HV/HY Welds - FLUSH with surface (x=90) */}
+                                {fig.includes('hv') && weldSide !== '2-sided' && <path d="M90,80 L100,95 L110,95 L110,100 L90,100 Z" fill={weldFill} stroke="black" /> }
                                 
-                                {fig.includes('hy') && <path d="M90,80 L100,100 L70,100 Z" fill={weldFill} stroke="black" />}
+                                {fig.includes('hy') && <path d="M90,80 L100,100 L90,100 Z" fill={weldFill} stroke="black" />}
                                 
                                 {fig === 't_k' && (
                                     <>
-                                        {/* Left Weld: Bevel + Gap Penetration */}
-                                        <path d="M90,80 L97,95 L97,100 L70,100 Z" fill={weldFill} stroke="black" />
-                                        {/* Right Weld */}
-                                        <path d="M110,80 L103,95 L103,100 L130,100 Z" fill={weldFill} stroke="black" />
+                                        {/* Left Weld: Bevel + Gap Penetration - FLUSH */}
+                                        <path d="M90,80 L97,95 L97,100 L90,100 Z" fill={weldFill} stroke="black" />
+                                        {/* Right Weld - FLUSH */}
+                                        <path d="M110,80 L103,95 L103,100 L110,100 Z" fill={weldFill} stroke="black" />
                                         {/* Center Gap Fill */}
                                         <rect x="97" y="95" width="6" height="5" fill={weldFill} stroke="none" opacity="0.5"/>
                                     </>
@@ -725,7 +741,6 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                 {fig === 't_hv' && weldSide === '2-sided' && (
                                     <>
                                         {/* Left Weld (Flush with Web x=90) */}
-                                        {/* Path fills the bevel area: 90,80 -> 100,95 -> 110,95 -> 110,100 -> 90,100 */}
                                         <path d="M90,80 L100,95 L110,95 L110,100 L90,100 Z" fill={weldFill} stroke="black" />
                                         
                                         {/* Right Weld (Standard Fillet) */}
@@ -766,7 +781,7 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                     <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
                                     <rect x="20" y="0" width="60" height="20" fill={plateFill} stroke="black" />
                                     <path d="M0,20 L20,20 L20,0 Z" fill={weldFill} stroke="black" />
-                                    <path d="M0,20 L-5,25 L25,-5 L20,0 Z" fill={weldFill} stroke="none" opacity="0.5" />
+                                    {/* REMOVED REINFORCEMENT: <path d="M0,20 L-5,25 L25,-5 L20,0 Z" fill={weldFill} stroke="none" opacity="0.5" /> */}
                                     <path d="M20,20 L20,30 L30,20 Z" fill={weldFill} stroke="black" />
                                  </g>
                             </g>
@@ -827,6 +842,11 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
  
            {/* Symbol Group */}
            <g transform="translate(140, 50)">
+               {/* MODIFIED: If Square/Half Square, draw 'I' symbol */}
+               {(s === 'I') && (
+                   <path d="M0,0 L0,-15" stroke="black" strokeWidth="2" fill="none"/> // Basic Vertical Line for Square
+               )}
+ 
                {s === 'V' && <path d="M0,0 L-10,-15 M0,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>}
                {/* Y-Weld Symbol: Like V but with vertical stem */}
                {s === 'Y' && (
@@ -869,8 +889,8 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                     </>
                )}
                
-               {/* MODIFIED: Backing Bar M symbol moved BELOW dotted line for HV and V only */}
-               {(hasBacking || isBoxSection) && (s === 'HV' || s === 'V') && (
+               {/* MODIFIED: Backing Bar M symbol moved BELOW dotted line for HV, V, and Square Edge only */}
+               {(hasBacking || isBoxSection) && (s === 'HV' || s === 'V' || s === 'I') && (
                    <g transform="translate(0, 20)"> {/* Positive Y moves down. Dotted line is at y=60 (relative +10 from center). +20 puts it safely below. */}
                        <rect x="-5" y="-5" width="10" height="10" stroke="black" fill="none" strokeWidth="1"/>
                        <text x="0" y="3" textAnchor="middle" fontSize="8" fontWeight="bold">M</text>
@@ -965,8 +985,8 @@ export default function App() {
   const filteredWeldTypes = allWeldTypes.filter(type => {
       if (jointType === 'butt') {
           if (weldSide === '1-sided') {
-              // 1-Sided: V, HV, Y, HY (Exclude X and K)
-              return ['V', 'HV', 'Y', 'HY'].includes(type.symbol);
+              // 1-Sided: V, HV (Y & HY Removed)
+              return ['V', 'HV'].includes(type.symbol);
           } else {
               // 2-Sided: V, HV, X, K (Exclude Y, HY)
               return ['V', 'HV', 'X', 'K'].includes(type.symbol);
@@ -1087,7 +1107,19 @@ export default function App() {
   
   // New helper for display name
   const getWeldDisplayName = () => {
-      let name = isBoxSection ? "Box Girder (4x HV)" : currentWeld.name;
+      // Dynamic modification for Butt 1-sided >= 16mm
+      let activeWeldName = currentWeld.name;
+      const maxThickness = Math.max(Number(t1), Number(t2));
+      
+      if (jointType === 'butt' && weldSide === '1-sided' && maxThickness >= 16) {
+          if (currentWeld.symbol === 'V') {
+              activeWeldName = "Square Edge Weld (I)";
+          } else if (currentWeld.symbol === 'HV') {
+              activeWeldName = "Half Square Edge Weld";
+          }
+      }
+
+      let name = isBoxSection ? "Box Girder (4x HV)" : activeWeldName;
       const extras = [];
       
       // Filter out duplicates or conflicting logical names if necessary, 
@@ -1101,6 +1133,19 @@ export default function App() {
       }
       return name;
   };
+
+  // Prepare Active Weld Object for Renderers
+  let activeWeld = { ...currentWeld };
+  const maxThickness = Math.max(Number(t1), Number(t2));
+  
+  // Override for Square Edge Transform
+  if (jointType === 'butt' && weldSide === '1-sided' && maxThickness >= 16) {
+      if (currentWeld.symbol === 'V') {
+          activeWeld = { ...currentWeld, symbol: 'I', fig_type: 'butt_sq', name: "Square Edge Weld" };
+      } else if (currentWeld.symbol === 'HV') {
+          activeWeld = { ...currentWeld, symbol: 'I', fig_type: 'butt_half_sq', name: "Half Square Edge Weld" }; // Using I symbol for Half Square too as requested/implied
+      }
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 p-4">
@@ -1201,7 +1246,7 @@ export default function App() {
  
                 {WELD_DATA[jointType].hasOptions && !isBoxSection && (<div className="mb-4 bg-yellow-50 p-2 rounded border border-yellow-200"><label className="block text-[10px] font-bold uppercase text-yellow-800 mb-1">Corner Config</label><div className="flex gap-2"><button onClick={()=>setCornerOption('1')} className={`flex-1 text-xs border rounded py-1 ${cornerOption==='1' ? 'bg-yellow-400 font-bold' : 'bg-white'}`}>Corner to Corner</button><button onClick={()=>setCornerOption('2')} className={`flex-1 text-xs border rounded py-1 ${cornerOption==='2' ? 'bg-yellow-400 font-bold' : 'bg-white'}`}>Overlap</button></div></div>)}
                 {canHaveBox && (<div className="mb-4 bg-blue-50 p-3 rounded border border-blue-200"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={isBoxSection} onChange={(e) => setIsBoxSection(e.target.checked)} className="w-4 h-4 text-blue-600 rounded"/><span className="text-xs font-bold text-blue-800 flex items-center gap-2"><Layers size={14}/> Box Section Assembly</span></label></div>)}
-                <div className="mb-4"><label className="block text-xs font-bold uppercase text-slate-500 mb-1">Input Guide</label><JointVisualizer jointType={jointType} weldTypeData={currentWeld} t1={t1} t2={t2} t3={t3} t4={t4} cornerOption={cornerOption} activeField={activeField} isBoxSection={isBoxSection}/></div>
+                <div className="mb-4"><label className="block text-xs font-bold uppercase text-slate-500 mb-1">Input Guide</label><JointVisualizer jointType={jointType} weldTypeData={activeWeld} t1={t1} t2={t2} t3={t3} t4={t4} cornerOption={cornerOption} activeField={activeField} isBoxSection={isBoxSection}/></div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                     <div><label className="text-[10px] font-bold text-slate-500">Plate t1 (mm)</label><input type="number" value={t1} onChange={e=>setT1(e.target.value)} onFocus={()=>setActiveField('t1')} onBlur={()=>setActiveField(null)} className="w-full p-1 border rounded text-sm font-mono"/></div>
                     <div><label className="text-[10px] font-bold text-slate-500">Plate t2 (mm)</label><input type="number" value={t2} onChange={e=>setT2(e.target.value)} onFocus={()=>setActiveField('t2')} onBlur={()=>setActiveField(null)} className="w-full p-1 border rounded text-sm font-mono"/></div>
@@ -1316,11 +1361,11 @@ export default function App() {
                 </div>
                 <div className="border rounded bg-white p-3 shadow-sm mb-4">
                      <h4 className="text-xs font-bold text-gray-500 mb-2 border-b">Fig 1: Cross Section</h4>
-                     <div className="h-64 flex items-center justify-center bg-gray-50"><ResultRenderer data={currentWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} weldSide={weldSide}/></div>
+                     <div className="h-64 flex items-center justify-center bg-gray-50"><ResultRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} weldSide={weldSide}/></div>
                 </div>
                 <div className="border rounded bg-white p-3 shadow-sm mb-4">
                      <h4 className="text-xs font-bold text-gray-500 mb-2 border-b">Fig 2: Symbol</h4>
-                     <div className="h-32 flex items-center justify-center bg-gray-50"><SymbolRenderer data={currentWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} weldLength={weldLength} isWeldAllAround={isWeldAllAround} t1={t1} t2={t2} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet}/></div>
+                     <div className="h-32 flex items-center justify-center bg-gray-50"><SymbolRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} weldLength={weldLength} isWeldAllAround={isWeldAllAround} t1={t1} t2={t2} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet}/></div>
                 </div>
                 <div className="mt-4 text-[10px] text-gray-400 pt-2 border-t">*Ref: EN 15085-3 / ISO 9692. Always verify with approved WPS.</div>
             </div>
