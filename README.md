@@ -418,9 +418,12 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                     {fig === 't_k' ? (
                          // Double Bevel (K)
                          <path d="M90,20 L110,20 L110,80 L100,100 L90,80 Z" fill={plate2Fill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
-                    ) : fig.includes('hv') || fig.includes('hy') ? (
-                         // Single Bevel & HY
-                         // T-Joint HY: Web plate is vertical, sitting on flange.
+                    ) : fig.includes('hv') ? (
+                         // HV: Single Bevel with Gap (y=95)
+                         <path d="M90,20 L110,20 L110,95 L100,95 L90,80 Z" fill={plate2Fill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                    ) : fig.includes('hy') ? (
+                         // HY: Single Bevel NO Gap (y=100) - Touching plate
+                         // Ensure web sits on flange at y=100
                          <path d="M90,20 L110,20 L110,100 L100,100 L90,80 L90,20 Z" fill={plate2Fill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
                     ) : (
                          // No Bevel (Square)
@@ -431,7 +434,8 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                     <text x="60" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
                     
                     {/* Red Dashed Lines indicating Weld Prep */}
-                    {(fig === 't_hv' || fig === 't_hy') && <line x1="90" y1="80" x2="100" y2="100" stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>}
+                    {(fig === 't_hv') && <line x1="90" y1="80" x2="100" y2="95" stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>}
+                    {(fig === 't_hy') && <line x1="90" y1="80" x2="100" y2="100" stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>}
                     
                     {fig === 't_k' && (
                         <>
