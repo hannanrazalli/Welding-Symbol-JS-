@@ -475,8 +475,11 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                 )}
                 {jointType === 'lap' && (
                     <g transform="translate(90, 80)">
-                        <rect x="0" y="20" width="100" height="20" fill={plateFill} stroke="black" />
-                        <rect x="30" y="0" width="100" height="20" fill={plateFill} stroke="black" />
+                        {/* Modified to align right side */}
+                        {/* Bottom Plate: Starts 0, Ends 130 (Width 130) */}
+                        <rect x="0" y="20" width="130" height="20" fill={plateFill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                        {/* Top Plate: Starts 30, Ends 130 (Width 100) */}
+                        <rect x="30" y="0" width="100" height="20" fill={plate2Fill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
                         <text x="-10" y="35" className="text-[10px]" textAnchor="end" fill={getStroke('t2')}>t2</text>
                         <text x="140" y="15" className="text-[10px]" fill={getStroke('t1')}>t1</text>
                     </g>
@@ -825,10 +828,13 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                         )}
                         {jointType === 'lap' && (
                              <g transform="translate(90, 80)">
-                                <rect x="0" y="20" width="100" height="20" fill={plateFill} stroke="black" />
+                                {/* Bottom Plate: Width 130 */}
+                                <rect x="0" y="20" width="130" height="20" fill={plateFill} stroke="black" />
+                                {/* Top Plate: Width 100, Starts 30 */}
                                 <rect x="30" y="0" width="100" height="20" fill={plateFill} stroke="black" />
+                                {/* Left Weld Only */}
                                 <path d="M30,20 L30,0 L10,20 Z" fill={weldFill} stroke="black"/>
-                                <path d="M100,20 L130,20 L100,40 Z" fill={weldFill} stroke="black"/>
+                                {/* Right Weld removed as there is no step */}
                              </g>
                         )}
                         {jointType === 'three_member' && (
@@ -1150,7 +1156,7 @@ export default function App() {
   const isBackingAuto = Math.max(Number(t1), Number(t2)) >= 16;
   
   // NEW: Additional Fillet Option
-  // Show for T-Joint 1-Sided HV & HY OR Box Section (implied mandatory)
+  // Show for T-Joint 1-Sided HV & HY
   const showAdditionalFilletOption = (jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY')) || isBoxSection;
   
   // New helper for display name
