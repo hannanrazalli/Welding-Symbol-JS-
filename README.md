@@ -427,8 +427,8 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                   <g transform="translate(100, 70)">
                      {/* Defaulting to option 1 visual since hasOptions is removed */}
                      <g>
-                        <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
-                        <rect x="20" y="0" width="60" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                        <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
+                        <rect x="20" y="0" width="60" height="20" fill={plateFill} stroke="black" />
                         <circle cx="20" cy="20" r="2" fill="red" opacity="0.5" />
                         <text x="-15" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
                         <text x="50" y="-10" className="text-[10px]" fill={getStroke('t2')}>t2</text>
@@ -437,23 +437,23 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                 )}
                 {jointType === 'lap' && (
                     <g transform="translate(90, 80)">
-                        <rect x="0" y="20" width="100" height="20" fill={plateFill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
-                        <rect x="30" y="0" width="100" height="20" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                        <rect x="0" y="20" width="100" height="20" fill={plateFill} stroke="black" />
+                        <rect x="30" y="0" width="100" height="20" fill={plateFill} stroke="black" />
                         <text x="-10" y="35" className="text-[10px]" textAnchor="end" fill={getStroke('t2')}>t2</text>
                         <text x="140" y="15" className="text-[10px]" fill={getStroke('t1')}>t1</text>
                     </g>
                 )}
                 {jointType === 'three_member' && (
                     <g transform="translate(80, 60)">
-                        <path d="M0,0 L70,0 L78,15 L0,15 Z" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
-                        <path d="M82,15 L90,0 L160,0 L160,15 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                        <path d="M0,0 L70,0 L78,15 L0,15 Z" fill={plateFill} stroke="black" />
+                        <path d="M82,15 L90,0 L160,0 L160,15 Z" fill={plate2Fill} stroke="black" />
                         {/* FIX: Updated t3 rect to use getStroke('t3') and getWidth('t3') and plate3Fill */}
                         <rect x="72" y="15" width="16" height="60" fill={plate3Fill} stroke="black" />
                         <line x1="70" y1="0" x2="78" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
                         <line x1="90" y1="0" x2="82" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
-                        <text x="40" y="-5" className="text-[10px]" fill={getStroke('t1')}>t1</text>
-                        <text x="120" y="-5" className="text-[10px]" fill={getStroke('t2')}>t2</text>
-                        <text x="95" y="50" className="text-[10px]" fill={getStroke('t3')}>t3</text>
+                        <text x="40" y="-5" className="text-[10px]" fill="black">t1</text>
+                        <text x="120" y="-5" className="text-[10px]" fill="black">t2</text>
+                        <text x="95" y="50" className="text-[10px]" fill="black">t3</text>
                     </g>
                 )}
             </>
@@ -1084,7 +1084,24 @@ export default function App() {
   // NEW: Additional Fillet Option
   // Show for T-Joint 1-Sided HV & HY
   const showAdditionalFilletOption = jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY');
- 
+  
+  // New helper for display name
+  const getWeldDisplayName = () => {
+      let name = isBoxSection ? "Box Girder (4x HV)" : currentWeld.name;
+      const extras = [];
+      
+      // Filter out duplicates or conflicting logical names if necessary, 
+      // but usually these are additive.
+      if (hasBacking) extras.push("Backing Bar");
+      if (hasSealingRun) extras.push("Sealing Run");
+      if (hasAdditionalFillet) extras.push("Additional Fillet");
+
+      if (extras.length > 0) {
+          return `${name} with ${extras.join(" & ")}`;
+      }
+      return name;
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 p-4">
       <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden relative">
@@ -1216,7 +1233,7 @@ export default function App() {
                     <div>
                         <div className="flex justify-between items-start">
                             <div>
-                                <h3 className="font-bold text-sm text-slate-900">{isBoxSection ? "Box Girder (4x HV)" : currentWeld.name}</h3>
+                                <h3 className="font-bold text-sm text-slate-900">{getWeldDisplayName()}</h3>
                                 <p className="text-xs text-slate-600 mt-1">{currentWeld.description}</p>
                             </div>
                             {/* WELD CLASS SELECTOR */}
