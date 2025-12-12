@@ -187,19 +187,8 @@ const WELD_DATA = {
   },
   corner: {
     label: "Corner Joint",
-    // hasOptions removed to hide Corner Config
+    hasOptions: true, 
     types: [
-      {
-        id: '13c',
-        name: 'Corner Fillet',
-        symbol: 'F',
-        min_t: 2,
-        max_t: 20,
-        availableClasses: ["CP C1", "CP C2"],
-        penetration: "Partial Penetration",
-        description: "Outside & Inside fillet weld.",
-        fig_type: "corner_fillet"
-      },
       {
         id: '13d',
         name: 'Corner Seam Weld (V)',
@@ -287,30 +276,14 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
       <svg viewBox="0 0 300 200" className="w-full h-full">
         {isBoxSection ? (
             <g transform="translate(70, 30)">
-                {/* Top Flange (Plate 1) - Ends at y=15 */}
                 <rect x="0" y="0" width="160" height="15" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
-                
-                {/* Bottom Flange (Plate 4) - Starts at y=125 */}
                 <rect x="0" y="125" width="160" height="15" fill={plate4Fill} stroke={getStroke('t4')} strokeWidth={getWidth('t4')} />
-                
-                {/* Left Web (Plate 2) - Adjusted with GAP (y=18 to y=122) */}
-                {/* M25,18 L35,18 L35,122 L25,122 L15,112 L15,28 Z */}
                 <path d="M25,18 L35,18 L35,122 L25,122 L15,112 L15,28 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
-                
-                {/* Right Web (Plate 3) - Adjusted with GAP (y=18 to y=122) */}
-                {/* M125,18 L135,18 L145,28 L145,112 L135,122 L125,122 Z */}
+                <line x1="15" y1="25" x2="25" y2="15" stroke="red" strokeDasharray="2,2"/>
+                <line x1="15" y1="115" x2="25" y2="125" stroke="red" strokeDasharray="2,2"/>
                 <path d="M125,18 L135,18 L145,28 L145,112 L135,122 L125,122 Z" fill={plate3Fill} stroke={getStroke('t3')} strokeWidth={getWidth('t3')} />
-
-                {/* Red Dashed Lines for Weld Prep - Showing gap area */}
-                {/* Top Left */}
-                <line x1="15" y1="28" x2="25" y2="18" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
-                {/* Bottom Left */}
-                <line x1="15" y1="112" x2="25" y2="122" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
-                {/* Top Right */}
-                <line x1="135" y1="18" x2="145" y2="28" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
-                {/* Bottom Right */}
-                <line x1="145" y1="112" x2="135" y2="122" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
-                
+                <line x1="135" y1="15" x2="145" y2="25" stroke="red" strokeDasharray="2,2"/>
+                <line x1="145" y1="115" x2="135" y2="125" stroke="red" strokeDasharray="2,2"/>
                 <text x="80" y="-5" textAnchor="middle" className="text-[10px]" fill={getStroke('t1')}>t1 (Top)</text>
                 <text x="80" y="150" textAnchor="middle" className="text-[10px]" fill={getStroke('t4')}>t4 (Bottom)</text>
                 <text x="0" y="70" textAnchor="end" className="text-[10px]" fill={getStroke('t2')}>t2 (Left)</text>
@@ -463,22 +436,32 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                 )}
                 {jointType === 'corner' && (
                   <g transform="translate(100, 70)">
-                     {/* Defaulting to option 1 visual since hasOptions is removed */}
-                     <g>
-                        <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
-                        <rect x="20" y="0" width="60" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
-                        <circle cx="20" cy="20" r="2" fill="red" opacity="0.5" />
-                        <text x="-15" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
-                        <text x="50" y="-10" className="text-[10px]" fill={getStroke('t2')}>t2</text>
-                     </g>
+                     {cornerOption === '1' ? (
+                        <g>
+                           {/* Option 1: Corner to Corner */}
+                           <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                           <rect x="20" y="0" width="60" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                           <line x1="0" y1="20" x2="20" y2="20" stroke="red" strokeDasharray="2,2" opacity="0.7"/> 
+                           <text x="-15" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
+                           <text x="50" y="-10" className="text-[10px]" fill={getStroke('t2')}>t2</text>
+                        </g>
+                     ) : (
+                        <g>
+                           {/* Option 2: Overlap */}
+                           <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                           <rect x="0" y="0" width="80" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                           <line x1="0" y1="20" x2="20" y2="20" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
+                           <text x="-15" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
+                           <text x="60" y="-10" className="text-[10px]" fill={getStroke('t2')}>t2</text>
+                        </g>
+                     )}
                   </g>
                 )}
                 {jointType === 'lap' && (
                     <g transform="translate(90, 80)">
-                        {/* Modified to align right side */}
-                        {/* Bottom Plate: Starts 0, Ends 130 (Width 130) */}
+                        {/* Bottom Plate: Width 130 */}
                         <rect x="0" y="20" width="130" height="20" fill={plateFill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
-                        {/* Top Plate: Starts 30, Ends 130 (Width 100) */}
+                        {/* Top Plate: Width 100, Starts 30 */}
                         <rect x="30" y="0" width="100" height="20" fill={plate2Fill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
                         <text x="-10" y="35" className="text-[10px]" textAnchor="end" fill={getStroke('t2')}>t2</text>
                         <text x="140" y="15" className="text-[10px]" fill={getStroke('t1')}>t1</text>
@@ -816,25 +799,29 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                         )}
                         {jointType === 'corner' && (
                             <g transform="translate(100, 70)">
-                                 {/* Defaulting to option 1 visual since hasOptions is removed */}
-                                 <g>
-                                    <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
-                                    <rect x="20" y="0" width="60" height="20" fill={plateFill} stroke="black" />
-                                    <path d="M0,20 L20,20 L20,0 Z" fill={weldFill} stroke="black" />
-                                    {/* REMOVED REINFORCEMENT: <path d="M0,20 L-5,25 L25,-5 L20,0 Z" fill={weldFill} stroke="none" opacity="0.5" /> */}
-                                    <path d="M20,20 L20,30 L30,20 Z" fill={weldFill} stroke="black" />
-                                 </g>
+                                 {cornerOption === '1' ? (
+                                    <g>
+                                         <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
+                                         <rect x="20" y="0" width="60" height="20" fill={plateFill} stroke="black" />
+                                         <path d="M0,20 L20,20 L20,0 Z" fill={weldFill} stroke="black" />
+                                         {/* REMOVED REINFORCEMENT: <path d="M0,20 L-5,25 L25,-5 L20,0 Z" fill={weldFill} stroke="none" opacity="0.5" /> */}
+                                    </g>
+                                 ) : (
+                                    <g>
+                                        <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
+                                        <rect x="0" y="0" width="80" height="20" fill={plateFill} stroke="black" />
+                                        {/* Weld at external corner */}
+                                        <path d="M0,20 L20,20 L0,0 Z" fill={weldFill} stroke="black"/> 
+                                    </g>
+                                 )}
                             </g>
                         )}
                         {jointType === 'lap' && (
                              <g transform="translate(90, 80)">
-                                {/* Bottom Plate: Width 130 */}
-                                <rect x="0" y="20" width="130" height="20" fill={plateFill} stroke="black" />
-                                {/* Top Plate: Width 100, Starts 30 */}
+                                <rect x="0" y="20" width="100" height="20" fill={plateFill} stroke="black" />
                                 <rect x="30" y="0" width="100" height="20" fill={plateFill} stroke="black" />
-                                {/* Left Weld Only */}
                                 <path d="M30,20 L30,0 L10,20 Z" fill={weldFill} stroke="black"/>
-                                {/* Right Weld removed as there is no step */}
+                                <path d="M100,20 L130,20 L100,40 Z" fill={weldFill} stroke="black"/>
                              </g>
                         )}
                         {jointType === 'three_member' && (
@@ -1156,7 +1143,7 @@ export default function App() {
   const isBackingAuto = Math.max(Number(t1), Number(t2)) >= 16;
   
   // NEW: Additional Fillet Option
-  // Show for T-Joint 1-Sided HV & HY
+  // Show for T-Joint 1-Sided HV & HY OR Box Section (implied mandatory)
   const showAdditionalFilletOption = (jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY')) || isBoxSection;
   
   // New helper for display name
