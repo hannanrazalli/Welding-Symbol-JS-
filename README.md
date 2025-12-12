@@ -187,19 +187,8 @@ const WELD_DATA = {
   },
   corner: {
     label: "Corner Joint",
-    // hasOptions removed to hide Corner Config
+    hasOptions: true, 
     types: [
-      {
-        id: '13c',
-        name: 'Corner Fillet',
-        symbol: 'F',
-        min_t: 2,
-        max_t: 20,
-        availableClasses: ["CP C1", "CP C2"],
-        penetration: "Partial Penetration",
-        description: "Outside & Inside fillet weld.",
-        fig_type: "corner_fillet"
-      },
       {
         id: '13d',
         name: 'Corner Seam Weld (V)',
@@ -602,6 +591,12 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
  
   const showLegend = !['t_fillet', 'corner_fillet', 'lap'].includes(fig);
   const showGap = !fig.includes('hy') && fig !== 'butt_y'; 
+  
+  // Determine if specific legends should be shown based on weld type (s)
+  const showAngle = ['V', 'HV', 'Y', 'HY', 'X', 'K'].includes(s);
+  const showRoot = ['V', 'HV', 'Y', 'HY', 'X', 'K'].includes(s);
+  // Modified: Fillet (F), Y, and HY do not show gap
+  const showGapVal = !['F', 'Y', 'HY'].includes(s); 
  
   return (
     <div className="flex flex-col h-full">
@@ -830,7 +825,7 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                         
                                         {/* Weld filling the step (Fillet) */}
                                         {/* Step is from x=0 to x=14 on top of P1 (y=20) */}
-                                        {/* Weld triangle: (0,20) -> (14,20) -> (14,6) approx */}
+                                        {/* Weld triangle: (0,20) -> (14,20) -> (14,0) approx */}
                                         <path d="M0,20 L14,20 L14,0 Z" fill={weldFill} stroke="black"/> 
                                     </g>
                                  )}
@@ -862,6 +857,12 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                     </>
                 )}
             </svg>
+             {/* Dynamic Legend at Bottom of Welding View */}
+             <div className="absolute bottom-2 left-0 w-full flex justify-center gap-6 text-xs font-bold font-mono pointer-events-none bg-white/50 py-1">
+                {showAngle && <span><span className="text-red-600">Angle(α):</span> <span className="text-black">{angle}°</span></span>}
+                {showGapVal && gap !== undefined && gap !== null && <span><span className="text-red-600">Gap(b):</span> <span className="text-black">{gap}mm</span></span>}
+                {showRoot && rootFace !== undefined && rootFace !== null && <span><span className="text-red-600">Root(c):</span> <span className="text-black">{rootFace}mm</span></span>}
+            </div>
         </div>
     </div>
   );
@@ -1163,8 +1164,8 @@ export default function App() {
   const isBackingAuto = Math.max(Number(t1), Number(t2)) >= 16;
   
   // NEW: Additional Fillet Option
-  // Show for T-Joint 1-Sided HV & HY OR Box Section (implied mandatory)
-  const showAdditionalFilletOption = (jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY')) || isBoxSection;
+  // Show for T-Joint 1-Sided HV & HY
+  const showAdditionalFilletOption = jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY');
   
   // New helper for display name
   const getWeldDisplayName = () => {
