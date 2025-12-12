@@ -620,19 +620,12 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                     <>
                         {jointType === 'butt' && (
                             <g transform="translate(50, 30)">
-                                {fig === 'butt_sq' ? (
+                                {(fig === 'butt_sq' || fig === 'butt_half_sq') ? (
                                     <>
                                         {/* Square Edge (Modified V with no root face) */}
                                         <path d="M20,60 L80,60 L95,90 L20,90 Z" fill={plateFill} stroke="black" />
                                         <path d="M180,60 L120,60 L105,90 L180,90 Z" fill={plateFill} stroke="black" />
                                         <path d="M80,60 L120,60 L105,90 L95,90 Z" fill={weldFill} stroke="black" />
-                                    </>
-                                ) : fig === 'butt_half_sq' ? (
-                                    <>
-                                        {/* Half Square (Modified HV with no root face) */}
-                                        <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" />
-                                        <path d="M180,60 L120,60 L105,90 L180,90 Z" fill={plateFill} stroke="black" />
-                                        <path d="M95,60 L120,60 L105,90 L95,90 Z" fill={weldFill} stroke="black" />
                                     </>
                                 ) : (
                                     <>
@@ -735,7 +728,12 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                      <rect x="90" y="20" width="20" height="80" fill={plate2Fill} stroke="black" />
                                 )}
  
-                                {fig === 't_fillet' && <><path d="M90,100 L90,80 L70,100 Z" fill={weldFill} stroke="black" /><path d="M110,100 L110,80 L130,100 Z" fill={weldFill} stroke="black" /></>}
+                                {fig === 't_fillet' && (
+                                    <>
+                                        <path d="M90,100 L90,80 L70,100 Z" fill={weldFill} stroke="black" />
+                                        {weldSide === '2-sided' && <path d="M110,100 L110,80 L130,100 Z" fill={weldFill} stroke="black" />}
+                                    </>
+                                )}
                                 
                                 {/* Standard HV/HY Welds - FLUSH with surface (x=90) */}
                                 {fig.includes('hv') && weldSide !== '2-sided' && <path d="M90,80 L100,95 L110,95 L110,100 L90,100 Z" fill={weldFill} stroke="black" /> }
@@ -774,9 +772,9 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                 )}
                                 
                                 {/* Additional Fillet (Convex shape on top of HV/HY weld) */}
-                                {hasAdditionalFillet && (fig.includes('hv') || fig.includes('hy')) && (
+                                {hasAdditionalFillet && (fig.includes('hv') || fig.includes('hy')) && weldSide === '1-sided' && (
                                     // Draw a curve from top of bevel to bottom of bevel on the weld face
-                                    <path d="M90,80 Q105,90 70,100" fill={weldFill} stroke="black" opacity="0.6"/> // Simple representation: bulging out
+                                    <path d="M90,80 L70,100 L90,100 Z" fill={weldFill} stroke="black" />
                                 )}
                                 
                                 {/* HV Dimension - Hide if 2-sided */}
