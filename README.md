@@ -187,8 +187,19 @@ const WELD_DATA = {
   },
   corner: {
     label: "Corner Joint",
-    hasOptions: true, 
+    // hasOptions removed to hide Corner Config
     types: [
+      {
+        id: '13c',
+        name: 'Corner Fillet',
+        symbol: 'F',
+        min_t: 2,
+        max_t: 20,
+        availableClasses: ["CP C1", "CP C2"],
+        penetration: "Partial Penetration",
+        description: "Outside & Inside fillet weld.",
+        fig_type: "corner_fillet"
+      },
       {
         id: '13d',
         name: 'Corner Seam Weld (V)',
@@ -441,16 +452,16 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                            {/* Option 1: Corner to Corner */}
                            <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
                            <rect x="20" y="0" width="60" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
-                           <line x1="0" y1="20" x2="20" y2="20" stroke="red" strokeDasharray="2,2" opacity="0.7"/> 
+                           <circle cx="20" cy="20" r="2" fill="red" opacity="0.5" />
                            <text x="-15" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
                            <text x="50" y="-10" className="text-[10px]" fill={getStroke('t2')}>t2</text>
                         </g>
                      ) : (
                         <g>
-                           {/* Option 2: Overlap */}
+                           {/* Option 2: Overlap (Modified: 3/10 overlap) */}
                            <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
-                           <rect x="0" y="0" width="80" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
-                           <line x1="0" y1="20" x2="20" y2="20" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
+                           {/* Plate 2 shifted right to x=14 (overlaps 6px out of 20px width of P1) */}
+                           <rect x="14" y="0" width="80" height="20" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
                            <text x="-15" y="50" className="text-[10px]" textAnchor="end" fill={getStroke('t1')}>t1</text>
                            <text x="60" y="-10" className="text-[10px]" fill={getStroke('t2')}>t2</text>
                         </g>
@@ -801,27 +812,36 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                             <g transform="translate(100, 70)">
                                  {cornerOption === '1' ? (
                                     <g>
-                                         <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
-                                         <rect x="20" y="0" width="60" height="20" fill={plateFill} stroke="black" />
-                                         <path d="M0,20 L20,20 L20,0 Z" fill={weldFill} stroke="black" />
-                                         {/* REMOVED REINFORCEMENT: <path d="M0,20 L-5,25 L25,-5 L20,0 Z" fill={weldFill} stroke="none" opacity="0.5" /> */}
+                                        {/* Corner to Corner */}
+                                        <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
+                                        <rect x="20" y="0" width="60" height="20" fill={plateFill} stroke="black" />
+                                        
+                                        {/* Existing Outside Weld (V) */}
+                                        <path d="M0,20 L20,20 L20,0 Z" fill={weldFill} stroke="black" />
+                                        
+                                        {/* NEW: Opposite Inside Fillet Weld */}
+                                        <path d="M20,20 L20,30 L30,20 Z" fill={weldFill} stroke="black" />
                                     </g>
                                  ) : (
                                     <g>
+                                        {/* Overlap (3/10) */}
                                         <rect x="0" y="20" width="20" height="60" fill={plateFill} stroke="black" />
-                                        <rect x="0" y="0" width="80" height="20" fill={plateFill} stroke="black" />
-                                        {/* Weld at external corner */}
-                                        <path d="M0,20 L20,20 L0,0 Z" fill={weldFill} stroke="black"/> 
+                                        <rect x="14" y="0" width="80" height="20" fill={plateFill} stroke="black" />
+                                        
+                                        {/* Weld filling the step (Fillet) */}
+                                        {/* Step is from x=0 to x=14 on top of P1 (y=20) */}
+                                        {/* Weld triangle: (0,20) -> (14,20) -> (14,6) approx */}
+                                        <path d="M0,20 L14,20 L14,0 Z" fill={weldFill} stroke="black"/> 
                                     </g>
                                  )}
                             </g>
                         )}
                         {jointType === 'lap' && (
                              <g transform="translate(90, 80)">
-                                <rect x="0" y="20" width="100" height="20" fill={plateFill} stroke="black" />
+                                <rect x="0" y="20" width="130" height="20" fill={plateFill} stroke="black" />
                                 <rect x="30" y="0" width="100" height="20" fill={plateFill} stroke="black" />
                                 <path d="M30,20 L30,0 L10,20 Z" fill={weldFill} stroke="black"/>
-                                <path d="M100,20 L130,20 L100,40 Z" fill={weldFill} stroke="black"/>
+                                {/* Right Weld Removed */}
                              </g>
                         )}
                         {jointType === 'three_member' && (
