@@ -287,14 +287,30 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
       <svg viewBox="0 0 300 200" className="w-full h-full">
         {isBoxSection ? (
             <g transform="translate(70, 30)">
+                {/* Top Flange (Plate 1) - Ends at y=15 */}
                 <rect x="0" y="0" width="160" height="15" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                
+                {/* Bottom Flange (Plate 4) - Starts at y=125 */}
                 <rect x="0" y="125" width="160" height="15" fill={plate4Fill} stroke={getStroke('t4')} strokeWidth={getWidth('t4')} />
-                <path d="M25,15 L35,15 L35,125 L25,125 L15,115 L15,25 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
-                <line x1="15" y1="25" x2="25" y2="15" stroke="red" strokeDasharray="2,2"/>
-                <line x1="15" y1="115" x2="25" y2="125" stroke="red" strokeDasharray="2,2"/>
-                <path d="M125,15 L135,15 L145,25 L145,115 L135,125 L125,125 Z" fill={plate3Fill} stroke={getStroke('t3')} strokeWidth={getWidth('t3')} />
-                <line x1="135" y1="15" x2="145" y2="25" stroke="red" strokeDasharray="2,2"/>
-                <line x1="145" y1="115" x2="135" y2="125" stroke="red" strokeDasharray="2,2"/>
+                
+                {/* Left Web (Plate 2) - Adjusted with GAP (y=18 to y=122) */}
+                {/* M25,18 L35,18 L35,122 L25,122 L15,112 L15,28 Z */}
+                <path d="M25,18 L35,18 L35,122 L25,122 L15,112 L15,28 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                
+                {/* Right Web (Plate 3) - Adjusted with GAP (y=18 to y=122) */}
+                {/* M125,18 L135,18 L145,28 L145,112 L135,122 L125,122 Z */}
+                <path d="M125,18 L135,18 L145,28 L145,112 L135,122 L125,122 Z" fill={plate3Fill} stroke={getStroke('t3')} strokeWidth={getWidth('t3')} />
+
+                {/* Red Dashed Lines for Weld Prep - Showing gap area */}
+                {/* Top Left */}
+                <line x1="15" y1="28" x2="25" y2="18" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
+                {/* Bottom Left */}
+                <line x1="15" y1="112" x2="25" y2="122" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
+                {/* Top Right */}
+                <line x1="135" y1="18" x2="145" y2="28" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
+                {/* Bottom Right */}
+                <line x1="145" y1="112" x2="135" y2="122" stroke="red" strokeDasharray="2,2" opacity="0.7"/>
+                
                 <text x="80" y="-5" textAnchor="middle" className="text-[10px]" fill={getStroke('t1')}>t1 (Top)</text>
                 <text x="80" y="150" textAnchor="middle" className="text-[10px]" fill={getStroke('t4')}>t4 (Bottom)</text>
                 <text x="0" y="70" textAnchor="end" className="text-[10px]" fill={getStroke('t2')}>t2 (Left)</text>
@@ -1045,7 +1061,15 @@ export default function App() {
       setHasAdditionalFillet(false); // Reset additional fillet
   }, [jointType]);
   
-  useEffect(() => { if (!currentWeld?.allowBox) setIsBoxSection(false); }, [currentWeld]);
+  useEffect(() => { 
+      if (!currentWeld?.allowBox) setIsBoxSection(false); 
+      
+      // AUTO-FORCE MANDATORY OPTIONS FOR BOX SECTION
+      if (isBoxSection) {
+          setHasBacking(true);
+          setHasAdditionalFillet(true);
+      }
+  }, [currentWeld, isBoxSection]);
  
   // LOGIC FOR HASBACKING & SEALING RUN
   useEffect(() => {
@@ -1055,6 +1079,9 @@ export default function App() {
      const fig = currentWeld.fig_type;
      const s = currentWeld.symbol;
  
+     // Box Section Mandatory Logic handled in other effect, prevent override here if box section
+     if (isBoxSection) return;
+ 
      // Force disable backing for specific types
      const noBackingTypes = ['t_fillet', 't_hy', 't_k', 'butt_x', 'butt_y', 'lap', 'corner_fillet', 'corner_v'];
      
@@ -1062,7 +1089,7 @@ export default function App() {
          setHasBacking(false);
      } else if ((s === 'V' || s === 'HV') && weldSide === '1-sided') {
          // Auto-enable if thick for 1-sided V/HV, but allow manual override (handled by UI state if < 16)
-         if (maxThickness >= 16 || isBoxSection) {
+         if (maxThickness >= 16) {
              setHasBacking(true);
          }
      } else {
@@ -1123,8 +1150,8 @@ export default function App() {
   const isBackingAuto = Math.max(Number(t1), Number(t2)) >= 16;
   
   // NEW: Additional Fillet Option
-  // Show for T-Joint 1-Sided HV & HY
-  const showAdditionalFilletOption = jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY');
+  // Show for T-Joint 1-Sided HV & HY OR Box Section (implied mandatory)
+  const showAdditionalFilletOption = (jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY')) || isBoxSection;
   
   // New helper for display name
   const getWeldDisplayName = () => {
@@ -1218,19 +1245,19 @@ export default function App() {
                         {filteredWeldTypes.map((t, idx) => (<option key={t.id} value={idx}>{t.symbol} - {t.name}</option>))}
                     </select>
                     
-                    {/* BACKING BAR OPTION (1-Sided V/HV) */}
-                    {showBackingOption && (
+                    {/* BACKING BAR OPTION (1-Sided V/HV) OR BOX SECTION (Mandatory) */}
+                    {(showBackingOption || isBoxSection) && (
                         <div className="mt-2 flex items-center gap-2">
                              <input 
                                 type="checkbox" 
                                 id="backing"
                                 checked={hasBacking} 
-                                disabled={isBackingAuto} // Disabled if auto-selected by thickness
+                                disabled={isBackingAuto || isBoxSection} // Disabled if auto-selected by thickness OR box section
                                 onChange={(e) => setHasBacking(e.target.checked)} 
-                                className="w-4 h-4 text-blue-600 rounded"
+                                className="w-4 h-4 text-blue-600 rounded disabled:opacity-50"
                             />
                             <label htmlFor="backing" className="text-xs font-bold text-slate-600">
-                                {isBackingAuto ? "Automatic Backing (Thickness ≥ 16mm)" : "With Backing Bar"}
+                                {isBoxSection ? "With Backing Bar (Mandatory)" : (isBackingAuto ? "Automatic Backing (Thickness ≥ 16mm)" : "With Backing Bar")}
                             </label>
                         </div>
                     )}
@@ -1250,17 +1277,20 @@ export default function App() {
                         </div>
                     )}
  
-                    {/* ADDITIONAL FILLET OPTION (1-Sided T-Joint HV/HY) */}
+                    {/* ADDITIONAL FILLET OPTION (1-Sided T-Joint HV/HY) OR BOX SECTION (Mandatory) */}
                     {showAdditionalFilletOption && (
                          <div className="mt-2 flex items-center gap-2">
                             <input 
                                type="checkbox" 
                                id="addFillet"
                                checked={hasAdditionalFillet} 
+                               disabled={isBoxSection} // Disabled if mandatory for box section
                                onChange={(e) => setHasAdditionalFillet(e.target.checked)} 
-                               className="w-4 h-4 text-blue-600 rounded"
+                               className="w-4 h-4 text-blue-600 rounded disabled:opacity-50"
                            />
-                           <label htmlFor="addFillet" className="text-xs font-bold text-slate-600">With Additional Fillet</label>
+                           <label htmlFor="addFillet" className="text-xs font-bold text-slate-600">
+                               {isBoxSection ? "With Additional Fillet (Mandatory)" : "With Additional Fillet"}
+                           </label>
                        </div>
                     )}
                 </div>
