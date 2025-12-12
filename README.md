@@ -305,8 +305,11 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                 {jointType === 'butt' && (
                   <g transform="translate(50, 30)">
                     {/* LEFT PLATE */}
-                    {(fig === 'butt_sq' || fig === 'butt_half_sq') ? (
-                        // Square Edge / Half Square (Both rendered as Square for visual simplicity in input)
+                    {fig === 'butt_sq' ? (
+                        // Square Edge (Modified V with no root face)
+                        <path d="M20,60 L80,60 L95,90 L20,90 Z" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                    ) : fig === 'butt_half_sq' ? (
+                        // Half Square (Modified HV with no root face) - Square side
                         <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
                     ) : fig === 'butt_v' ? (
                         <path d="M20,60 L80,60 L95,80 L95,90 L20,90 Z" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
@@ -331,8 +334,12 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                     )}
  
                     {/* RIGHT PLATE */}
-                    {(fig === 'butt_sq' || fig === 'butt_half_sq') ? (
-                        <rect x="105" y="60" width="75" height="30" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                    {fig === 'butt_sq' ? (
+                        // Square Edge (Modified V with no root face)
+                        <path d="M180,60 L120,60 L105,90 L180,90 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                    ) : fig === 'butt_half_sq' ? (
+                        // Half Square (Modified HV with no root face) - Beveled side
+                        <path d="M180,60 L120,60 L105,90 L180,90 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
                     ) : fig === 'butt_v' ? (
                         <path d="M180,60 L120,60 L105,80 L105,90 L180,90 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
                     ) : fig === 'butt_hv' ? (
@@ -357,12 +364,18 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                     <text x="50" y="45" className="text-[10px]" fill={getStroke('t1')}>t1</text>
                     <text x="140" y="45" className="text-[10px]" fill={getStroke('t2')}>t2</text>
                     
-                    {/* Dotted lines for V */}
-                    {fig === 'butt_v' && <line x1="80" y1="60" x2="95" y2="80" stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>}
-                    {fig === 'butt_v' && <line x1="120" y1="60" x2="105" y2="80" stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>}
+                    {/* Dotted lines for V & Square Edge */}
+                    {(fig === 'butt_v' || fig === 'butt_sq') && (
+                        <>
+                            <line x1="80" y1="60" x2="95" y2={fig === 'butt_sq' ? 90 : 80} stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>
+                            <line x1="120" y1="60" x2="105" y2={fig === 'butt_sq' ? 90 : 80} stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>
+                        </>
+                    )}
  
-                    {/* Dotted lines for HV */}
-                    {fig === 'butt_hv' && <line x1="120" y1="60" x2="105" y2="80" stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>}
+                    {/* Dotted lines for HV & Half Square */}
+                    {(fig === 'butt_hv' || fig === 'butt_half_sq') && (
+                        <line x1="120" y1="60" x2="105" y2={fig === 'butt_half_sq' ? 90 : 80} stroke="red" strokeWidth="1" strokeDasharray="2,2" opacity="0.7"/>
+                    )}
  
                     {/* Dotted lines for Y */}
                     {fig === 'butt_y' && (
@@ -607,13 +620,19 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                     <>
                         {jointType === 'butt' && (
                             <g transform="translate(50, 30)">
-                                {(fig === 'butt_sq' || fig === 'butt_half_sq') ? (
+                                {fig === 'butt_sq' ? (
                                     <>
-                                        {/* Square Edge Plates */}
+                                        {/* Square Edge (Modified V with no root face) */}
+                                        <path d="M20,60 L80,60 L95,90 L20,90 Z" fill={plateFill} stroke="black" />
+                                        <path d="M180,60 L120,60 L105,90 L180,90 Z" fill={plateFill} stroke="black" />
+                                        <path d="M80,60 L120,60 L105,90 L95,90 Z" fill={weldFill} stroke="black" />
+                                    </>
+                                ) : fig === 'butt_half_sq' ? (
+                                    <>
+                                        {/* Half Square (Modified HV with no root face) */}
                                         <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" />
-                                        <rect x="105" y="60" width="75" height="30" fill={plateFill} stroke="black" />
-                                        {/* Weld Fill (Red Rectangle in Gap) */}
-                                        <rect x="95" y="60" width="10" height="30" fill={weldFill} stroke="black" />
+                                        <path d="M180,60 L120,60 L105,90 L180,90 Z" fill={plateFill} stroke="black" />
+                                        <path d="M95,60 L120,60 L105,90 L95,90 Z" fill={weldFill} stroke="black" />
                                     </>
                                 ) : (
                                     <>
