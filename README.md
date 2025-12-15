@@ -870,7 +870,7 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
 };
  
 // --- SYMBOL RENDERER ---
-const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, isWeldAllAround, t1, t2, hasSealingRun, hasAdditionalFillet, selectedClass }) => {
+const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, isWeldAllAround, t1, t2, hasSealingRun, hasAdditionalFillet, selectedClass, weldSide }) => {
     const s = data.symbol;
     const weldSizeText = calculateWeldSize(data, t1, t2, inputs.rootFace);
     const isDouble = s === 'X' || s === 'K';
@@ -931,7 +931,13 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                    <path d="M0,0 L0,-15" stroke="black" strokeWidth="2" fill="none"/> // Basic Vertical Line for Square
                )}
  
-               {s === 'V' && <path d="M0,0 L-10,-15 M0,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>}
+               {/* MODIFIED: V-Weld 1-Sided (and 3-member) style: _\_/ */}
+               {s === 'V' && inputs.jointType !== 'corner' && (
+                   <g>
+                        <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
+                        <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
+                   </g>
+               )}
                {/* Y-Weld Symbol: Like V but with vertical stem */}
                {s === 'Y' && (
                   <g>
@@ -951,7 +957,8 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                       <path d="M0,0 L0,5" stroke="black" strokeWidth="2" fill="none"/>
                   </g>
                )}
-               {s === 'F' && <path d="M0,0 L0,-15 L15,0" stroke="black" strokeWidth="2" fill="none"/>}
+               {/* MODIFIED: Fillet F Symbol - Closed Triangle Z */}
+               {s === 'F' && inputs.jointType !== 'corner' && <path d="M0,0 L0,-15 L15,0 Z" stroke="black" strokeWidth="2" fill="none"/>}
                
                {/* MODIFIED: X Weld (Double V) - Mirrored at dotted line */}
                {s === 'X' && (
@@ -981,14 +988,55 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                    </g>
                )}
  
-               {/* Sealing Run Symbol - Small curve on the opposite side (bottom for arrow side weld) */}
+               {/* Sealing Run Symbol:
+                   Standard: Small curve on opposite side.
+                   2-Sided T-HV special case: Fillet symbol on opposite side (dotted line).
+               */}
                {hasSealingRun && (
-                   <path d="M-5,10 Q0,15 5,10" fill="none" stroke="black" strokeWidth="2" />
+                   <>
+                       {(inputs.jointType === 't_joint' && s === 'HV') ? (
+                           // Special case for T-Joint 2-Sided HV: Fillet symbol on dotted line
+                           // Dotted line is at y=60. Fillet should be mirrored.
+                           // Standard fillet top is |__ (0,0 L0,-15 L15,0).
+                           // Bottom (mirrored) would be |`` (0,10 L0,25 L15,10).
+                           <path d="M0,10 L0,25 L15,10 Z" stroke="black" strokeWidth="2" fill="none" />
+                       ) : (
+                           // Standard sealing run curve - semicircle
+                           // Starts from dotted line (y=10 relative to g)
+                           <path d="M-5,10 A5,5 0 0,0 5,10" fill="none" stroke="black" strokeWidth="2" />
+                       )}
+                   </>
                )}
  
                {/* Additional Fillet Symbol - Triangle overlaid on the groove symbol */}
                {hasAdditionalFillet && (
-                   <path d="M0,0 L0,-15 L15,0" stroke="black" strokeWidth="2" fill="none" /> 
+                   // Stack ON TOP of existing symbol.
+                   // Existing symbols (HV/HY) go from y=0 to y=-15.
+                   // We want to stack this fillet physically above it.
+                   // Move it up by 15 units? so it goes from -15 to -30?
+                   // Or just draw it "on" the bevel line?
+                   // The user requested: "tak overlap... letak atas symbol HV".
+                   // Let's translate it up by -15.
+                   <g transform="translate(0, -18)">
+                        <path d="M0,0 L0,-15 L15,0 Z" stroke="black" strokeWidth="2" fill="none" /> 
+                   </g>
+               )}
+
+               {/* SPECIAL CASE: 1-Sided Butt HV (Thickness >= 16mm) - Symbol |_/_ */}
+               {/* This is handled by activeWeld symbol being 'I' and fig_type 'butt_half_sq' */}
+               {/* But wait, 'I' symbol is just a line. We need |_/_ */}
+               {/* Let's intercept it based on data.fig_type */}
+               {data.fig_type === 'butt_half_sq' && (
+                    <g>
+                        {/* Remove the generic 'I' if it was rendered by s==='I' block above? 
+                            The s==='I' block renders `M0,0 L0,-15`.
+                            We need `|_/_`.
+                            Vertical: M0,0 L0,-15
+                            Bottom: M0,0 L5,0
+                            Bevel: M5,0 L10,-15
+                        */}
+                         <path d="M0,0 L5,0 L15,-15" stroke="black" strokeWidth="2" fill="none"/>
+                    </g>
                )}
            </g>
            
@@ -998,7 +1046,8 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
            </text>
  
            {/* Dimensions (a, z) - LEFT of symbol - Bottom Value for Double Sided */}
-           {isDouble && (
+           {/* MODIFIED: Show bottom value for standard double sided OR T-Joint 2-Sided Fillet */}
+           {(isDouble || (inputs.jointType === 't_joint' && s === 'F' && weldSide === '2-sided')) && (
                <text x="115" y="75" textAnchor="end" className="text-xs font-medium font-mono">
                  {weldSizeText}
                </text>
@@ -1010,7 +1059,8 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                     <text x="165" y="45" textAnchor="start" className="text-xs font-bold font-mono">
                         {weldLength}
                     </text>
-                    {isDouble && (
+                    {/* MODIFIED: Show bottom length for standard double sided OR T-Joint 2-Sided Fillet */}
+                    {(isDouble || (inputs.jointType === 't_joint' && s === 'F' && weldSide === '2-sided')) && (
                         <text x="165" y="80" textAnchor="start" className="text-xs font-bold font-mono">
                             {weldLength}
                         </text>
@@ -1025,6 +1075,43 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                    <text x="265" y="45" textAnchor="end" className="text-xs font-bold text-blue-600">TYP 4 Places</text>
                </g>
            )}
+           
+           {/* Special Corner Joint Logic for Symbols */}
+           {inputs.jointType === 'corner' && (
+               <g transform="translate(140, 50)">
+                   {inputs.cornerOption === '1' ? (
+                       // Corner to Corner: Double Fillet (Top and Bottom)
+                       <>
+                           <path d="M0,0 L0,-15 L15,0 Z" stroke="black" strokeWidth="2" fill="none" />
+                           <path d="M0,10 L0,25 L15,10 Z" stroke="black" strokeWidth="2" fill="none" />
+                       </>
+                   ) : (
+                       // Overlap: Single Fillet Top
+                       <path d="M0,0 L0,-15 L15,0 Z" stroke="black" strokeWidth="2" fill="none" />
+                   )}
+               </g>
+           )}
+
+           {/* Special T-Joint Double Fillet Logic (13b) */}
+           {/* Check for T-Joint & 2-Sided & Fillet */}
+           {inputs.jointType === 't_joint' && data.symbol === 'F' && weldSide === '2-sided' && (
+               <g transform="translate(140, 50)">
+                   {/* Top Fillet (already drawn by s='F' block? No, s='F' block draws top only. We need bottom too.) */}
+                   {/* But wait, the s='F' block is generic. We need to ADD the bottom one here. */}
+                   {/* Bottom Fillet (Mirrored on dotted line y=60? No, standard dotted line is y=60 relative to svg? Wait. 
+                       Reference line is y=50. Dotted line is y=60.
+                       Top symbol sits on y=50 (M0,0).
+                       Bottom symbol should sit on y=60 (M0,10).
+                   */}
+                   <path d="M0,10 L0,25 L15,10 Z" stroke="black" strokeWidth="2" fill="none" />
+               </g>
+           )}
+
+           {/* 3-Member Joint Symbol Override */}
+           {/* The default 'V' block is now modified to _\_/.
+               But 3-member joint uses s='V'. So it should pick up the modified V block above. 
+           */}
+
        </svg>
     )
 };
@@ -1158,6 +1245,11 @@ export default function App() {
       
   }, [t1, t2, t3, t4, isBoxSection, isT3Enabled, isT4Enabled, currentWeld, weldSide, jointType]);
  
+  // Reset hasAdditionalFillet when switching sides or joint types to prevent lingering symbol
+  useEffect(() => {
+    setHasAdditionalFillet(false);
+  }, [weldSide, jointType]);
+
   // Check plate availability logic
   useEffect(() => {
       const invalid = [];
@@ -1245,7 +1337,14 @@ export default function App() {
       // Filter out duplicates or conflicting logical names if necessary, 
       // but usually these are additive.
       if (hasBacking) extras.push("Backing Bar");
-      if (hasSealingRun) extras.push("Sealing Run");
+      
+      // Update Name logic for T-Joint HV 2-Sided
+      if (jointType === 't_joint' && weldSide === '2-sided' && currentWeld.symbol === 'HV') {
+           extras.push("Fillet as sealing run");
+      } else if (hasSealingRun) {
+           extras.push("Sealing Run");
+      }
+
       if (hasAdditionalFillet) extras.push("Additional Fillet");
 
       if (extras.length > 0) {
@@ -1559,7 +1658,7 @@ export default function App() {
                 </div>
                 <div className="border rounded bg-white p-3 shadow-sm mb-4">
                      <h4 className="text-xs font-bold text-gray-500 mb-2 border-b">Fig 2: Symbol</h4>
-                     <div className="h-32 flex items-center justify-center bg-gray-50"><SymbolRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} weldLength={weldLength} isWeldAllAround={isWeldAllAround} t1={t1} t2={t2} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} selectedClass={selectedClass}/></div>
+                     <div className="h-32 flex items-center justify-center bg-gray-50"><SymbolRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} weldLength={weldLength} isWeldAllAround={isWeldAllAround} t1={t1} t2={t2} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} selectedClass={selectedClass} weldSide={weldSide}/></div>
                 </div>
                 <div className="mt-4 text-[10px] text-gray-400 pt-2 border-t">*Ref: EN 15085-3 / ISO 9692. Always verify with approved WPS.</div>
             </div>
