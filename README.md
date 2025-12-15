@@ -1343,7 +1343,6 @@ export default function App() {
           const maxThickness = Math.max(Number(t1), Number(t2), isT3Enabled ? Number(t3) : 0, isT4Enabled ? Number(t4) : 0);
           if (maxThickness >= 20) { setAngle(30); } else { setAngle(50); }
 
-          // Restore defaults if coming from a constrained joint like 3-member
            if (jointType !== 'three_member') {
                if (rootFace === 0) setRootFace(2);
                if (gap === 4) setGap(2); 
