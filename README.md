@@ -931,13 +931,38 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                    <path d="M0,0 L0,-15" stroke="black" strokeWidth="2" fill="none"/> // Basic Vertical Line for Square
                )}
  
-               {/* MODIFIED: V-Weld 1-Sided (and 3-member) style: _\_/ */}
+               {/* MODIFIED: V-Weld 1-Sided (Thickness <=15) and 3-member logic */}
                {s === 'V' && inputs.jointType !== 'corner' && (
                    <g>
-                        <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
-                        <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
+                        {/* 1-Sided Butt V >= 16mm logic uses s='I' via activeWeld transform, 
+                            so this block runs for 3-member OR V-weld <16mm.
+                            Wait, user requested "1-sided weld butt joint V weld utk plate thickness >= 16mm, symbol sama mcm 3-member joint".
+                            And 3-member joint uses _\_/.
+                            So for V >= 16mm (which is transformed to s='I', fig='butt_sq'), we need _\_/.
+                            That is handled in the `data.fig_type === 'butt_sq'` block below.
+                            
+                            So here, we handle V < 16mm. 
+                            Does V < 16mm also need _\_/ ? 
+                            "1-sided weld butt joint V weld utk plate thickness >= 16mm, symbol sama mcm 3-member joint".
+                            Implies < 16mm uses standard V.
+                            
+                            Standard V: M0,0 L-10,-15 M0,0 L10,-15
+                            _\_/ : M-10,-15 L-3,0  M3,0 L10,-15
+                        */}
+                        
+                        {(inputs.jointType === 'three_member') ? (
+                            // 3-Member Joint Symbol: _\_/
+                            <>
+                                <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
+                                <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
+                            </>
+                        ) : (
+                            // Standard V-Weld (< 16mm)
+                            <path d="M0,0 L-10,-15 M0,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
+                        )}
                    </g>
                )}
+               
                {/* Y-Weld Symbol: Like V but with vertical stem */}
                {s === 'Y' && (
                   <g>
@@ -1016,25 +1041,27 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                    // Move it up by 15 units? so it goes from -15 to -30?
                    // Or just draw it "on" the bevel line?
                    // The user requested: "tak overlap... letak atas symbol HV".
-                   // Let's translate it up by -15.
+                   // Let's translate it up by -18 to give a small gap.
                    <g transform="translate(0, -18)">
                         <path d="M0,0 L0,-15 L15,0 Z" stroke="black" strokeWidth="2" fill="none" /> 
                    </g>
                )}
 
+               {/* SPECIAL CASE: 1-Sided Butt V (Thickness >= 16mm) - Symbol _\_/ */}
+               {/* This is handled by activeWeld symbol being 'I' and fig_type 'butt_sq' */}
+               {data.fig_type === 'butt_sq' && (
+                    <g>
+                        {/* 3-Member joint style symbol: _\_/ */}
+                        <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
+                        <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
+                    </g>
+               )}
+
                {/* SPECIAL CASE: 1-Sided Butt HV (Thickness >= 16mm) - Symbol |_/_ */}
                {/* This is handled by activeWeld symbol being 'I' and fig_type 'butt_half_sq' */}
-               {/* But wait, 'I' symbol is just a line. We need |_/_ */}
-               {/* Let's intercept it based on data.fig_type */}
                {data.fig_type === 'butt_half_sq' && (
                     <g>
-                        {/* Remove the generic 'I' if it was rendered by s==='I' block above? 
-                            The s==='I' block renders `M0,0 L0,-15`.
-                            We need `|_/_`.
-                            Vertical: M0,0 L0,-15
-                            Bottom: M0,0 L5,0
-                            Bevel: M5,0 L10,-15
-                        */}
+                        {/* |_/_ symbol */}
                          <path d="M0,0 L5,0 L15,-15" stroke="black" strokeWidth="2" fill="none"/>
                     </g>
                )}
@@ -1047,7 +1074,7 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
  
            {/* Dimensions (a, z) - LEFT of symbol - Bottom Value for Double Sided */}
            {/* MODIFIED: Show bottom value for standard double sided OR T-Joint 2-Sided Fillet */}
-           {(isDouble || (inputs.jointType === 't_joint' && s === 'F' && weldSide === '2-sided')) && (
+           {(isDouble || (inputs.jointType === 't_joint' && s === 'F' && weldSide === '2-sided') || (inputs.jointType === 'corner' && inputs.cornerOption === '1')) && (
                <text x="115" y="75" textAnchor="end" className="text-xs font-medium font-mono">
                  {weldSizeText}
                </text>
@@ -1060,7 +1087,7 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                         {weldLength}
                     </text>
                     {/* MODIFIED: Show bottom length for standard double sided OR T-Joint 2-Sided Fillet */}
-                    {(isDouble || (inputs.jointType === 't_joint' && s === 'F' && weldSide === '2-sided')) && (
+                    {(isDouble || (inputs.jointType === 't_joint' && s === 'F' && weldSide === '2-sided') || (inputs.jointType === 'corner' && inputs.cornerOption === '1')) && (
                         <text x="165" y="80" textAnchor="start" className="text-xs font-bold font-mono">
                             {weldLength}
                         </text>
@@ -1108,9 +1135,7 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
            )}
 
            {/* 3-Member Joint Symbol Override */}
-           {/* The default 'V' block is now modified to _\_/.
-               But 3-member joint uses s='V'. So it should pick up the modified V block above. 
-           */}
+           {/* Handled in 'V' block with condition */}
 
        </svg>
     )
