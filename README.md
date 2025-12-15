@@ -228,7 +228,7 @@ const WELD_DATA = {
         symbol: 'V',
         min_t: 4,
         max_t: 20,
-        availableClasses: ["CP A", "CP B1", "CP B2", "CP C1", "CP C2"],
+        availableClasses: ["CP C2"], 
         penetration: "Full Penetration",
         description: "T-Butt combination.",
         fig_type: "three_member"
@@ -469,10 +469,10 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                 )}
                 {jointType === 'three_member' && (
                     <g transform="translate(80, 60)">
-                        <path d="M0,0 L70,0 L78,15 L0,15 Z" fill={plateFill} stroke="black" />
-                        <path d="M82,15 L90,0 L160,0 L160,15 Z" fill={plate2Fill} stroke="black" />
+                        <path d="M0,0 L70,0 L78,15 L0,15 Z" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
+                        <path d="M82,15 L90,0 L160,0 L160,15 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
                         {/* FIX: Updated t3 rect to use getStroke('t3') and getWidth('t3') and plate3Fill */}
-                        <rect x="72" y="15" width="16" height="60" fill={plate3Fill} stroke="black" />
+                        <rect x="72" y="15" width="16" height="60" fill={plate3Fill} stroke={getStroke('t3')} strokeWidth={getWidth('t3')} />
                         <line x1="70" y1="0" x2="78" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
                         <line x1="90" y1="0" x2="82" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
                         <text x="40" y="-5" className="text-[10px]" fill="black">t1</text>
@@ -1145,11 +1145,36 @@ export default function App() {
       }
   }, [currentWeld]);
  
-  // Auto-adjust angle
+  // Auto-adjust angle, gap, rootFace for specific joints
   useEffect(() => {
-      const maxThickness = Math.max(Number(t1), Number(t2), isT3Enabled ? Number(t3) : 0, isT4Enabled ? Number(t4) : 0);
-      if (maxThickness >= 20) { setAngle(30); } else { setAngle(50); }
-  }, [t1, t2, t3, t4, isT3Enabled, isT4Enabled]);
+      if (jointType === 'three_member') {
+          setAngle(30);
+          setGap(4);
+          setRootFace(0);
+      } else {
+          // Existing logic for others
+          const maxThickness = Math.max(Number(t1), Number(t2), isT3Enabled ? Number(t3) : 0, isT4Enabled ? Number(t4) : 0);
+          if (maxThickness >= 20) { setAngle(30); } else { setAngle(50); }
+
+          // Restore defaults if coming from a constrained joint like 3-member
+          // We check if the values match the constraints of 3-member to reset them.
+          // This prevents resetting if the user just manually changed something else.
+          // Although for simplicity and "maintain as before", setting to default 2 is safest when switching types.
+           if (jointType !== 'three_member') {
+               // Only reset if they look like the 3-member defaults to avoid annoyance? 
+               // Or just reset when jointType changes?
+               // Since `jointType` is a dependency, this runs on change. 
+               // But it also runs on t1 change. 
+               // We don't want to reset RootFace every time t1 changes for normal joints.
+               // Refined logic:
+               // This requires a ref to track previous jointType or just accepting a reset on t-change is okay?
+               // Actually, "maintain as before" means for normal joints, it's 2.
+               // Let's just set it to 2 if it is 0.
+               if (rootFace === 0) setRootFace(2);
+               if (gap === 4) setGap(2); 
+           }
+      }
+  }, [t1, t2, t3, t4, isT3Enabled, isT4Enabled, jointType]);
  
   // Auto-clear weldLength
   useEffect(() => {
@@ -1205,6 +1230,8 @@ export default function App() {
     if (jointType === 'corner') {
         return cornerOption === '2' ? "13c" : "13d";
     }
+ 
+    if (jointType === 'three_member') return "12";
  
     // PREPARE ACTIVE WELD PROPERTIES FOR LOGIC
     // We need to know if it's derived Square/Half Square
