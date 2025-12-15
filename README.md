@@ -469,10 +469,10 @@ const JointVisualizer = ({ jointType, weldTypeData, cornerOption, activeField, i
                 )}
                 {jointType === 'three_member' && (
                     <g transform="translate(80, 60)">
-                        <path d="M0,0 L70,0 L78,15 L0,15 Z" fill={plateFill} stroke={getStroke('t1')} strokeWidth={getWidth('t1')} />
-                        <path d="M82,15 L90,0 L160,0 L160,15 Z" fill={plate2Fill} stroke={getStroke('t2')} strokeWidth={getWidth('t2')} />
+                        <path d="M0,0 L70,0 L78,15 L0,15 Z" fill={plateFill} stroke="black" />
+                        <path d="M82,15 L90,0 L160,0 L160,15 Z" fill={plate2Fill} stroke="black" />
                         {/* FIX: Updated t3 rect to use getStroke('t3') and getWidth('t3') and plate3Fill */}
-                        <rect x="72" y="15" width="16" height="60" fill={plate3Fill} stroke={getStroke('t3')} strokeWidth={getWidth('t3')} />
+                        <rect x="72" y="15" width="16" height="60" fill={plate3Fill} stroke="black" />
                         <line x1="70" y1="0" x2="78" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
                         <line x1="90" y1="0" x2="82" y2="15" stroke="red" strokeWidth="1" strokeDasharray="1,1" opacity="0.6"/>
                         <text x="40" y="-5" className="text-[10px]" fill="black">t1</text>
@@ -577,7 +577,7 @@ const ParameterDiagram = ({ jointType, fig }) => {
 }
  
 // --- RESULT RENDERER (STABLE - NO DIMS) ---
-const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun, hasAdditionalFillet, weldSide }) => {
+const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun, hasAdditionalFillet, weldSide, selectedClass }) => {
   const { jointType, cornerOption, angle, gap, rootFace } = inputs;
   const fig = data?.fig_type || "unknown";
   const s = data.symbol;
@@ -592,11 +592,12 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
   const showLegend = !['t_fillet', 'corner_fillet', 'lap'].includes(fig);
   const showGap = !fig.includes('hy') && fig !== 'butt_y'; 
   
-  // Determine if specific legends should be shown based on weld type (s)
-  const showAngle = ['V', 'HV', 'Y', 'HY', 'X', 'K'].includes(s);
-  const showRoot = ['V', 'HV', 'Y', 'HY', 'X', 'K'].includes(s);
-  // Modified: Fillet (F), Y, and HY do not show gap
-  const showGapVal = !['F', 'Y', 'HY'].includes(s); 
+  // Determine if specific legends should be shown based on weld type (s) and jointType
+  // For Corner Joint, never show these legends as per instructions.
+  const isCorner = jointType === 'corner';
+  const showAngle = !isCorner && ['V', 'HV', 'Y', 'HY', 'X', 'K'].includes(s);
+  const showRoot = !isCorner && ['V', 'HV', 'Y', 'HY', 'X', 'K'].includes(s);
+  const showGapVal = !isCorner && !['F', 'Y', 'HY'].includes(s); 
  
   return (
     <div className="flex flex-col h-full">
@@ -869,15 +870,47 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
 };
  
 // --- SYMBOL RENDERER ---
-const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, isWeldAllAround, t1, t2, hasSealingRun, hasAdditionalFillet }) => {
+const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, isWeldAllAround, t1, t2, hasSealingRun, hasAdditionalFillet, selectedClass }) => {
     const s = data.symbol;
     const weldSizeText = calculateWeldSize(data, t1, t2, inputs.rootFace);
     const isDouble = s === 'X' || s === 'K';
     
+    // NDT Logic for Tail
+    let ndtText = null;
+    const currentClassDetails = CLASS_DETAILS[selectedClass];
+    if (currentClassDetails) {
+        // Simple logic based on inspection class
+        // CP A -> 100% -> "UT / MT"
+        if (selectedClass === "CP A") {
+            ndtText = "UT / MT";
+        }
+        // CP B1, B2, C1 -> 10% -> "UT / MT\n10%"
+        else if (["CP B1", "CP B2", "CP C1"].includes(selectedClass)) {
+            ndtText = "UT / MT\n10%";
+        }
+        // CP C2 -> None
+    }
+
     return (
        <svg viewBox="0 0 300 100" className="w-full h-full">
            {/* Reference Line */}
            <line x1="20" y1="50" x2="280" y2="50" stroke="black" strokeWidth="2"/>
+           
+           {/* Tail Fork at the end (x=280) if NDT text exists */}
+           {ndtText && (
+               <g>
+                   {/* Upper Branch (45 deg) */}
+                   <line x1="280" y1="50" x2="295" y2="35" stroke="black" strokeWidth="2" />
+                   {/* Lower Branch (-45 deg) */}
+                   <line x1="280" y1="50" x2="295" y2="65" stroke="black" strokeWidth="2" />
+                   {/* Text in between */}
+                   <text x="300" y="50" fontSize="8" fontWeight="bold" dominantBaseline="middle">
+                       {ndtText.split('\n').map((t, i) => (
+                           <tspan x="300" dy={i === 0 ? "-3" : "10"} key={i}>{t}</tspan>
+                       ))}
+                   </text>
+               </g>
+           )}
            
            {/* Arrow Head */}
            <line x1="20" y1="50" x2="10" y2="80" stroke="black" strokeWidth="2"/>
@@ -1425,7 +1458,7 @@ export default function App() {
                         </label>
                     </div>
                 </div>
-                {mode === 'advanced' && (<div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded animate-fade-in"><div className="grid grid-cols-3 gap-2"><div><label className="text-[10px] font-bold text-slate-500">Angle (°)</label><input type="number" value={angle} onChange={(e) => setAngle(Number(e.target.value))} className="w-full p-1 border rounded text-sm font-mono"/></div><div><label className="text-[10px] font-bold text-slate-500">Gap (mm)</label><input type="number" value={gap} onChange={(e) => setGap(Number(e.target.value))} className="w-full p-1 border rounded text-sm font-mono"/></div><div><label className="text-[10px] font-bold text-slate-500">Root (mm)</label><input type="number" value={rootFace} onChange={(e) => setRootFace(Number(e.target.value))} className="w-full p-1 border rounded text-sm font-mono"/></div></div></div>)}
+                {mode === 'advanced' && (<div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded animate-fade-in"><div className="grid grid-cols-3 gap-2"><div><label className="text-[10px] font-bold text-slate-500">Angle (°)</label><input type="number" value={angle} onChange={(e) => setAngle(Number(e.target.value))} disabled={jointType === 'three_member'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div><div><label className="text-[10px] font-bold text-slate-500">Gap (mm)</label><input type="number" value={gap} onChange={(e) => setGap(Number(e.target.value))} disabled={jointType === 'three_member' || jointType === 'corner'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div><div><label className="text-[10px] font-bold text-slate-500">Root (mm)</label><input type="number" value={rootFace} onChange={(e) => setRootFace(Number(e.target.value))} disabled={jointType === 'three_member' || jointType === 'corner'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div></div></div>)}
             </div>
  
             <div className="md:col-span-7 p-5 bg-white">
@@ -1522,11 +1555,11 @@ export default function App() {
                 </div>
                 <div className="border rounded bg-white p-3 shadow-sm mb-4">
                      <h4 className="text-xs font-bold text-gray-500 mb-2 border-b">Fig 1: Cross Section</h4>
-                     <div className="h-64 flex items-center justify-center bg-gray-50"><ResultRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} weldSide={weldSide}/></div>
+                     <div className="h-64 flex items-center justify-center bg-gray-50"><ResultRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} weldSide={weldSide} selectedClass={selectedClass}/></div>
                 </div>
                 <div className="border rounded bg-white p-3 shadow-sm mb-4">
                      <h4 className="text-xs font-bold text-gray-500 mb-2 border-b">Fig 2: Symbol</h4>
-                     <div className="h-32 flex items-center justify-center bg-gray-50"><SymbolRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} weldLength={weldLength} isWeldAllAround={isWeldAllAround} t1={t1} t2={t2} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet}/></div>
+                     <div className="h-32 flex items-center justify-center bg-gray-50"><SymbolRenderer data={activeWeld} inputs={{ angle, gap, rootFace, jointType, cornerOption, t3, t4 }} isBoxSection={isBoxSection} hasBacking={hasBacking} weldLength={weldLength} isWeldAllAround={isWeldAllAround} t1={t1} t2={t2} hasSealingRun={hasSealingRun} hasAdditionalFillet={hasAdditionalFillet} selectedClass={selectedClass}/></div>
                 </div>
                 <div className="mt-4 text-[10px] text-gray-400 pt-2 border-t">*Ref: EN 15085-3 / ISO 9692. Always verify with approved WPS.</div>
             </div>
