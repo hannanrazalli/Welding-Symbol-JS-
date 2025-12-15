@@ -931,7 +931,7 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                    <path d="M0,0 L0,-15" stroke="black" strokeWidth="2" fill="none"/> // Basic Vertical Line for Square
                )}
  
-               {/* MODIFIED: V-Weld 1-Sided (Thickness <=15) and 3-member logic */}
+               {/* MODIFIED: V-Weld 1-Sided (and 3-member) style: _\_/ */}
                {s === 'V' && inputs.jointType !== 'corner' && (
                    <g>
                         {/* 1-Sided Butt V >= 16mm logic uses s='I' via activeWeld transform, 
@@ -1047,22 +1047,29 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                    </g>
                )}
 
-               {/* SPECIAL CASE: 1-Sided Butt V (Thickness >= 16mm) - Symbol _\_/ */}
-               {/* This is handled by activeWeld symbol being 'I' and fig_type 'butt_sq' */}
-               {data.fig_type === 'butt_sq' && (
-                    <g>
-                        {/* 3-Member joint style symbol: _\_/ */}
-                        <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
-                        <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
-                    </g>
-               )}
-
                {/* SPECIAL CASE: 1-Sided Butt HV (Thickness >= 16mm) - Symbol |_/_ */}
                {/* This is handled by activeWeld symbol being 'I' and fig_type 'butt_half_sq' */}
+               {/* But wait, 'I' symbol is just a line. We need |_/_ */}
+               {/* Let's intercept it based on data.fig_type */}
                {data.fig_type === 'butt_half_sq' && (
                     <g>
-                        {/* |_/_ symbol */}
+                        {/* Remove the generic 'I' if it was rendered by s==='I' block above? 
+                            The s==='I' block renders `M0,0 L0,-15`.
+                            We need `|_/_`.
+                            Vertical: M0,0 L0,-15
+                            Bottom: M0,0 L5,0
+                            Bevel: M5,0 L10,-15
+                        */}
                          <path d="M0,0 L5,0 L15,-15" stroke="black" strokeWidth="2" fill="none"/>
+                    </g>
+               )}
+               
+               {/* SPECIAL CASE: 1-Sided Butt V (Thickness >= 16mm) - Symbol _\_/ */}
+               {/* Handled by s='I' and butt_sq logic */}
+               {data.fig_type === 'butt_sq' && (
+                    <g>
+                        <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
+                        <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
                     </g>
                )}
            </g>
