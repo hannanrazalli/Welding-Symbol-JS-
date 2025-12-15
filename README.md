@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Info, Ruler, AlertCircle, RefreshCw, Box, Layers, 
-  ArrowDownToLine, TriangleAlert, Eye, Activity, Shield, ScanEye, EyeOff
+  ArrowDownToLine, TriangleAlert, Eye, Activity, Shield, ScanEye, EyeOff, Hash
 } from 'lucide-react';
  
 // --- WAREHOUSE DATA ---
@@ -1097,9 +1097,9 @@ export default function App() {
      if (isBoxSection) return;
  
      // Force disable backing for specific types
-     const noBackingTypes = ['t_fillet', 't_hy', 't_k', 'butt_x', 'butt_y', 'lap', 'corner_fillet', 'corner_v'];
+     const noBackingTypes = ['t_fillet', 't_hy', 't_k', 'butt_x', 'butt_y', 'lap', 'corner_fillet', 'corner_v', 'three_member']; // Added three_member
      
-     if (noBackingTypes.includes(fig) || s === 'K' || s === 'X' || s === 'Y' || s === 'HY') {
+     if (noBackingTypes.includes(fig) || s === 'K' || s === 'X' || s === 'Y' || s === 'HY' || jointType === 'three_member') { // Add jointType === 'three_member' here
          setHasBacking(false);
      } else if ((s === 'V' || s === 'HV') && weldSide === '1-sided') {
          // Auto-enable if thick for 1-sided V/HV, but allow manual override (handled by UI state if < 16)
@@ -1160,12 +1160,12 @@ export default function App() {
  
   // Logic for showing options
   const showSealingRunOption = weldSide === '2-sided' && jointType === 'butt' && (currentWeld?.symbol === 'V' || currentWeld?.symbol === 'HV');
-  const showBackingOption = weldSide === '1-sided' && jointType !== 'corner' && (currentWeld?.symbol === 'V' || currentWeld?.symbol === 'HV');
+  const showBackingOption = weldSide === '1-sided' && jointType !== 'corner' && jointType !== 'three_member' && (currentWeld?.symbol === 'V' || currentWeld?.symbol === 'HV');
   const isBackingAuto = Math.max(Number(t1), Number(t2)) >= 16;
   
   // NEW: Additional Fillet Option
   // Show for T-Joint 1-Sided HV & HY
-  const showAdditionalFilletOption = jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY');
+  const showAdditionalFilletOption = (jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY')) || isBoxSection;
   
   // New helper for display name
   const getWeldDisplayName = () => {
@@ -1195,7 +1195,71 @@ export default function App() {
       }
       return name;
   };
-
+ 
+  // --- WELD NUMBER LOGIC ---
+  const getWeldNumber = () => {
+    if (isBoxSection) return "10b, 10c & 10e";
+ 
+    if (jointType === 'lap') return "13e";
+ 
+    if (jointType === 'corner') {
+        return cornerOption === '2' ? "13c" : "13d";
+    }
+ 
+    // PREPARE ACTIVE WELD PROPERTIES FOR LOGIC
+    // We need to know if it's derived Square/Half Square
+    const maxThickness = Math.max(Number(t1), Number(t2));
+    let isSquare = false;
+    let isHalfSquare = false;
+    
+    if (jointType === 'butt' && weldSide === '1-sided' && maxThickness >= 16) {
+        if (currentWeld.symbol === 'V') isSquare = true;
+        if (currentWeld.symbol === 'HV') isHalfSquare = true;
+    }
+ 
+    if (jointType === 'butt') {
+        if (weldSide === '2-sided') {
+            if (currentWeld.symbol === 'V') return "2c";
+            if (currentWeld.symbol === 'HV') return "3c";
+            if (currentWeld.symbol === 'X') return "6";
+            if (currentWeld.symbol === 'K') return "7"; // Mapped K to 7 per previous context or standard double bevel T, here butt.
+        } else {
+            // 1-sided
+            if (isSquare && hasBacking) return "2d";
+            if (isHalfSquare && hasBacking) return "3d";
+            
+            if (currentWeld.symbol === 'V') {
+                return hasBacking ? "2b" : "2a";
+            }
+            if (currentWeld.symbol === 'HV') {
+                return hasBacking ? "3b" : "3a";
+            }
+        }
+    }
+ 
+    if (jointType === 't_joint') {
+        if (weldSide === '2-sided') {
+            if (currentWeld.symbol === 'K') return "7";
+            if (currentWeld.symbol === 'HV') return "10b";
+            if (currentWeld.symbol === 'F') return "13b";
+        } else {
+            // 1-sided
+            if (currentWeld.symbol === 'F') return "13a";
+            if (currentWeld.symbol === 'HV') {
+                if (hasAdditionalFillet) return "10c";
+                if (hasBacking) return "10e";
+                return "10a";
+            }
+            if (currentWeld.symbol === 'HY') {
+                if (hasAdditionalFillet) return "11c";
+                return "11a";
+            }
+        }
+    }
+ 
+    return "N/A";
+  };
+ 
   // Prepare Active Weld Object for Renderers
   let activeWeld = { ...currentWeld };
   const maxThickness = Math.max(Number(t1), Number(t2));
@@ -1361,6 +1425,11 @@ export default function App() {
                                     ))}
                                 </div>
                             </div>
+                        </div>
+                        
+                        {/* WELD NO INFO (ADDED) */}
+                        <div className="mt-2 text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded inline-flex items-center gap-2">
+                             <Hash size={12}/> Weld No. (EN 15085-3 Annex B): <span className="text-blue-600">{getWeldNumber()}</span>
                         </div>
  
                         {/* CLASS DETAILS PANEL */}
