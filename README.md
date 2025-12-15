@@ -1,9 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Info, Ruler, AlertCircle, RefreshCw, Box, Layers, 
-  ArrowDownToLine, TriangleAlert, Eye, Activity, Shield, ScanEye, EyeOff, Hash
-} from 'lucide-react';
- 
+import React, { useState, useEffect, useMemo } from 'react';
+
+// --- INLINE ICONS (Fixed: Accepting props for size & className) ---
+const createIcon = (path) => ({ size = 16, className = "", ...props }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className} 
+    {...props}
+  >
+    {path}
+  </svg>
+);
+
+const IconInfo = createIcon(<><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>);
+const IconRuler = createIcon(<><path d="M2 12h20"/><path d="M6 12v-2"/><path d="M10 12v-3"/><path d="M14 12v-3"/><path d="M18 12v-2"/></>);
+const IconAlertCircle = createIcon(<><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>);
+const IconBox = createIcon(<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>);
+const IconLayers = createIcon(<><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>);
+const IconArrowDownToLine = createIcon(<><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></>);
+const IconTriangleAlert = createIcon(<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>);
+const IconActivity = createIcon(<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>);
+const IconShield = createIcon(<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>);
+const IconEye = createIcon(<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>);
+const IconRefreshCw = createIcon(<><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></>);
+const IconScanEye = createIcon(<><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="M12 16a9 9 0 0 0-9-7"/><path d="M12 8a9 9 0 0 1 9 4"/></>);
+const IconEyeOff = createIcon(<><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>);
+const IconHash = createIcon(<><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>);
+const IconFilter = createIcon(<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>);
+
 // --- WAREHOUSE DATA ---
 const AVAILABLE_PLATES = [2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 25, 30, 35, 40, 50, 60, 75, 115, 150, 200];
  
@@ -494,7 +525,7 @@ const ParameterDiagram = ({ jointType, fig }) => {
         return (
             <div className="flex flex-col h-full bg-slate-50 items-center justify-center border-l border-slate-200">
                 <div className="text-xs text-gray-400 text-center p-4">
-                    <Info size={24} className="mx-auto mb-2 opacity-50"/>
+                    <IconInfo size={24} className="mx-auto mb-2 opacity-50"/>
                     Parameters (Gap, Root, Angle)<br/>not typically defined for Fillet welds.
                 </div>
             </div>
@@ -1068,6 +1099,7 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                {/* Handled by s='I' and butt_sq logic */}
                {data.fig_type === 'butt_sq' && (
                     <g>
+                        {/* 3-Member joint style symbol: _\_/ */}
                         <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
                         <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
                     </g>
@@ -1174,6 +1206,10 @@ export default function App() {
   const [weldSide, setWeldSide] = useState('1-sided');
   const [hasSealingRun, setHasSealingRun] = useState(false); 
   const [hasAdditionalFillet, setHasAdditionalFillet] = useState(false);
+
+  // New States for Stress/Safety Filtering
+  const [stressCat, setStressCat] = useState('All');
+  const [safetyCat, setSafetyCat] = useState('All');
  
   // --- NEW: WAREHOUSE PLATES CHECK ---
   const availablePlates = [2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 25, 30, 35, 40, 50, 60, 75, 115, 150, 200];
@@ -1185,122 +1221,81 @@ export default function App() {
  
   // DYNAMIC FILTERING OF WELD TYPES BASED ON SIDE
   const allWeldTypes = WELD_DATA[jointType].types;
-  const filteredWeldTypes = allWeldTypes.filter(type => {
-      if (jointType === 'butt') {
-          if (weldSide === '1-sided') {
-              // 1-Sided: V, HV (Y & HY Removed)
-              return ['V', 'HV'].includes(type.symbol);
-          } else {
-              // 2-Sided: V, HV, X, K (Exclude Y, HY)
-              return ['V', 'HV', 'X', 'K'].includes(type.symbol);
-          }
-      } else if (jointType === 't_joint') { 
-          if (weldSide === '1-sided') {
-               return ['HV', 'HY', 'F'].includes(type.symbol);
-          } else {
-               // 2-Sided: K (Double HV), HV (Auto Sealing), F (Double Fillet implicitly or single)
-               return ['K', 'HV', 'F'].includes(type.symbol);
-          }
-      }
-      return true; 
-  });
- 
+  const filteredWeldTypes = useMemo(() => {
+    let types = WELD_DATA[jointType].types;
+
+    // Filter by Side (1-Sided vs 2-Sided)
+    if (jointType === 'butt') {
+        if (weldSide === '1-sided') {
+            types = types.filter(t => ['V', 'HV'].includes(t.symbol)); 
+        } else {
+            types = types.filter(t => ['V', 'HV', 'X', 'K'].includes(t.symbol));
+        }
+    } else if (jointType === 't_joint') {
+         if (weldSide === '1-sided') {
+             types = types.filter(t => ['HV', 'HY', 'F'].includes(t.symbol));
+         } else {
+             types = types.filter(t => ['K', 'HV', 'F'].includes(t.symbol));
+         }
+    }
+
+    // Filter by Stress/Safety Category
+    if (mode === 'advanced') {
+        const validClasses = Object.keys(CLASS_DETAILS).filter(cls => {
+            const details = CLASS_DETAILS[cls];
+            const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
+            const safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+            return stressMatch && safetyMatch;
+        });
+
+        if (stressCat !== 'All' || safetyCat !== 'All') {
+             types = types.filter(t => {
+                 return t.availableClasses.some(ac => validClasses.includes(ac));
+             });
+        }
+    }
+    return types;
+  }, [jointType, weldSide, stressCat, safetyCat, mode]);
+
   // Ensure weldIndex is valid after filtering
   useEffect(() => {
       if (weldIndex >= filteredWeldTypes.length) {
           setWeldIndex(0);
       }
-  }, [weldSide, filteredWeldTypes.length, jointType]);
- 
-  const currentWeld = filteredWeldTypes[weldIndex] || filteredWeldTypes[0];
+  }, [filteredWeldTypes.length]);
+
+  const currentWeld = filteredWeldTypes[weldIndex] || filteredWeldTypes[0] || WELD_DATA[jointType].types[0]; 
   const canHaveBox = WELD_DATA[jointType]?.hasBoxOption && currentWeld?.allowBox;
   const isT3Enabled = WELD_DATA[jointType]?.hasT3 || isBoxSection;
   const isT4Enabled = isBoxSection;
   
   const showSideOption = jointType === 'butt' || jointType === 't_joint';
  
-  useEffect(() => { 
-      setWeldIndex(0); 
-      setIsBoxSection(false);
-      setWeldSide('1-sided'); 
-      setHasSealingRun(false);
-      setHasAdditionalFillet(false); // Reset additional fillet
-  }, [jointType]);
-  
-  useEffect(() => { 
-      if (!currentWeld?.allowBox) setIsBoxSection(false); 
-      
-      // AUTO-FORCE MANDATORY OPTIONS FOR BOX SECTION
-      if (isBoxSection) {
-          setHasBacking(true);
-          setHasAdditionalFillet(true);
-      }
-  }, [currentWeld, isBoxSection]);
- 
-  // LOGIC FOR HASBACKING & SEALING RUN
-  useEffect(() => {
-     if (!currentWeld) return;
- 
-     const maxThickness = Math.max(Number(t1), Number(t2), isT3Enabled ? Number(t3) : 0, isT4Enabled ? Number(t4) : 0);
-     const fig = currentWeld.fig_type;
-     const s = currentWeld.symbol;
- 
-     // Box Section Mandatory Logic handled in other effect, prevent override here if box section
-     if (isBoxSection) return;
- 
-     // Force disable backing for specific types
-     const noBackingTypes = ['t_fillet', 't_hy', 't_k', 'butt_x', 'butt_y', 'lap', 'corner_fillet', 'corner_v', 'three_member']; // Added three_member
-     
-     if (noBackingTypes.includes(fig) || s === 'K' || s === 'X' || s === 'Y' || s === 'HY' || jointType === 'three_member') { // Add jointType === 'three_member' here
-         setHasBacking(false);
-     } else if ((s === 'V' || s === 'HV') && weldSide === '1-sided') {
-         // Auto-enable if thick for 1-sided V/HV, but allow manual override (handled by UI state if < 16)
-         if (maxThickness >= 16) {
-             setHasBacking(true);
-         }
-     } else {
-         setHasBacking(false);
-     }
- 
-     // Auto set Sealing Run for 2-sided Butt V/HV and T-Joint HV
-     if (weldSide === '2-sided') {
-         if (jointType === 'butt' && (s === 'V' || s === 'HV')) {
-             setHasSealingRun(true);
-         } else if (jointType === 't_joint' && s === 'HV') {
-             setHasSealingRun(true);
-         } else {
-             setHasSealingRun(false); // Or maintain prev logic if needed
-         }
-     } else {
-         setHasSealingRun(false);
-     }
-      
-  }, [t1, t2, t3, t4, isBoxSection, isT3Enabled, isT4Enabled, currentWeld, weldSide, jointType]);
- 
-  // Reset hasAdditionalFillet when switching sides or joint types to prevent lingering symbol
-  useEffect(() => {
-    setHasAdditionalFillet(false);
-  }, [weldSide, jointType]);
+  // FILTER AVAILABLE CLASSES FOR BUTTONS
+  const visibleClasses = useMemo(() => {
+    if (!currentWeld?.availableClasses) return [];
+    
+    if (mode !== 'advanced' || (stressCat === 'All' && safetyCat === 'All')) {
+        return currentWeld.availableClasses;
+    }
 
-  // Check plate availability logic
+    return currentWeld.availableClasses.filter(cls => {
+        const details = CLASS_DETAILS[cls];
+        if (!details) return false;
+        
+        const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
+        const safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+        
+        return stressMatch && safetyMatch;
+    });
+  }, [currentWeld, stressCat, safetyCat, mode]);
+
+  // Auto-select valid class if current selection is invalid
   useEffect(() => {
-      const invalid = [];
-      const check = (val, name) => {
-          if (!availablePlates.includes(Number(val))) invalid.push(`${name} (${val}mm)`);
-      };
-      check(t1, "t1");
-      check(t2, "t2");
-      if (isT3Enabled) check(t3, "t3");
-      if (isT4Enabled) check(t4, "t4");
-      setInvalidPlates(invalid);
-  }, [t1, t2, t3, t4, isT3Enabled, isT4Enabled]);
- 
-  // RESET SELECTED CLASS ON WELD CHANGE
-  useEffect(() => {
-      if(currentWeld?.availableClasses && currentWeld.availableClasses.length > 0) {
-          setSelectedClass(currentWeld.availableClasses[0]);
+      if (visibleClasses.length > 0 && !visibleClasses.includes(selectedClass)) {
+          setSelectedClass(visibleClasses[0]);
       }
-  }, [currentWeld]);
+  }, [visibleClasses, selectedClass]);
  
   // Auto-adjust angle, gap, rootFace for specific joints
   useEffect(() => {
@@ -1309,24 +1304,10 @@ export default function App() {
           setGap(4);
           setRootFace(0);
       } else {
-          // Existing logic for others
           const maxThickness = Math.max(Number(t1), Number(t2), isT3Enabled ? Number(t3) : 0, isT4Enabled ? Number(t4) : 0);
           if (maxThickness >= 20) { setAngle(30); } else { setAngle(50); }
 
-          // Restore defaults if coming from a constrained joint like 3-member
-          // We check if the values match the constraints of 3-member to reset them.
-          // This prevents resetting if the user just manually changed something else.
-          // Although for simplicity and "maintain as before", setting to default 2 is safest when switching types.
            if (jointType !== 'three_member') {
-               // Only reset if they look like the 3-member defaults to avoid annoyance? 
-               // Or just reset when jointType changes?
-               // Since `jointType` is a dependency, this runs on change. 
-               // But it also runs on t1 change. 
-               // We don't want to reset RootFace every time t1 changes for normal joints.
-               // Refined logic:
-               // This requires a ref to track previous jointType or just accepting a reset on t-change is okay?
-               // Actually, "maintain as before" means for normal joints, it's 2.
-               // Let's just set it to 2 if it is 0.
                if (rootFace === 0) setRootFace(2);
                if (gap === 4) setGap(2); 
            }
@@ -1346,12 +1327,10 @@ export default function App() {
   const isBackingAuto = Math.max(Number(t1), Number(t2)) >= 16;
   
   // NEW: Additional Fillet Option
-  // Show for T-Joint 1-Sided HV & HY
   const showAdditionalFilletOption = (jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY')) || isBoxSection;
   
   // New helper for display name
   const getWeldDisplayName = () => {
-      // Dynamic modification for Butt 1-sided >= 16mm
       let activeWeldName = currentWeld.name;
       const maxThickness = Math.max(Number(t1), Number(t2));
       
@@ -1366,11 +1345,8 @@ export default function App() {
       let name = isBoxSection ? "Box Girder (4x HV)" : activeWeldName;
       const extras = [];
       
-      // Filter out duplicates or conflicting logical names if necessary, 
-      // but usually these are additive.
       if (hasBacking) extras.push("Backing Bar");
       
-      // Update Name logic for T-Joint HV 2-Sided
       if (jointType === 't_joint' && weldSide === '2-sided' && currentWeld.symbol === 'HV') {
            extras.push("Fillet as sealing run");
       } else if (hasSealingRun) {
@@ -1397,8 +1373,6 @@ export default function App() {
  
     if (jointType === 'three_member') return "12";
  
-    // PREPARE ACTIVE WELD PROPERTIES FOR LOGIC
-    // We need to know if it's derived Square/Half Square
     const maxThickness = Math.max(Number(t1), Number(t2));
     let isSquare = false;
     let isHalfSquare = false;
@@ -1413,9 +1387,8 @@ export default function App() {
             if (currentWeld.symbol === 'V') return "2c";
             if (currentWeld.symbol === 'HV') return "3c";
             if (currentWeld.symbol === 'X') return "6";
-            if (currentWeld.symbol === 'K') return "7"; // Mapped K to 7 per previous context or standard double bevel T, here butt.
+            if (currentWeld.symbol === 'K') return "7"; 
         } else {
-            // 1-sided
             if (isSquare && hasBacking) return "2d";
             if (isHalfSquare && hasBacking) return "3d";
             
@@ -1434,7 +1407,6 @@ export default function App() {
             if (currentWeld.symbol === 'HV') return "10b";
             if (currentWeld.symbol === 'F') return "13b";
         } else {
-            // 1-sided
             if (currentWeld.symbol === 'F') return "13a";
             if (currentWeld.symbol === 'HV') {
                 if (hasAdditionalFillet) return "10c";
@@ -1455,12 +1427,11 @@ export default function App() {
   let activeWeld = { ...currentWeld };
   const maxThickness = Math.max(Number(t1), Number(t2));
   
-  // Override for Square Edge Transform
   if (jointType === 'butt' && weldSide === '1-sided' && maxThickness >= 16) {
       if (currentWeld.symbol === 'V') {
           activeWeld = { ...currentWeld, symbol: 'I', fig_type: 'butt_sq', name: "Square Edge Weld" };
       } else if (currentWeld.symbol === 'HV') {
-          activeWeld = { ...currentWeld, symbol: 'I', fig_type: 'butt_half_sq', name: "Half Square Edge Weld" }; // Using I symbol for Half Square too as requested/implied
+          activeWeld = { ...currentWeld, symbol: 'I', fig_type: 'butt_half_sq', name: "Half Square Edge Weld" }; 
       }
   }
 
@@ -1469,8 +1440,8 @@ export default function App() {
       <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden relative">
         <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
             <div>
-                <h1 className="text-xl font-bold flex items-center gap-2"><Ruler className="text-yellow-400"/> LocoWeld Mate <span className="text-xs bg-yellow-500 text-black px-1 rounded">V6.9 NoChat NoAI</span></h1>
-                <div className="flex items-center gap-2 text-xs text-gray-400"><Box size={14} /> Enhanced for Heavy Structures</div>
+                <h1 className="text-xl font-bold flex items-center gap-2"><IconRuler className="text-yellow-400"/> Joint Preparation of Welds <span className="text-xs bg-yellow-500 text-black px-1 rounded">V1.0</span></h1>
+                <div className="flex items-center gap-2 text-xs text-gray-400"><IconBox size={14} /> EN 15085-3:2023</div>
             </div>
             <div className="flex items-center gap-2">
                 <span className={`text-xs uppercase font-bold ${mode==='basic' ? 'text-white' : 'text-gray-500'}`}>Basic</span>
@@ -1565,7 +1536,7 @@ export default function App() {
                 </div>
  
                 {WELD_DATA[jointType].hasOptions && !isBoxSection && (<div className="mb-4 bg-yellow-50 p-2 rounded border border-yellow-200"><label className="block text-[10px] font-bold uppercase text-yellow-800 mb-1">Corner Config</label><div className="flex gap-2"><button onClick={()=>setCornerOption('1')} className={`flex-1 text-xs border rounded py-1 ${cornerOption==='1' ? 'bg-yellow-400 font-bold' : 'bg-white'}`}>Corner to Corner</button><button onClick={()=>setCornerOption('2')} className={`flex-1 text-xs border rounded py-1 ${cornerOption==='2' ? 'bg-yellow-400 font-bold' : 'bg-white'}`}>Overlap</button></div></div>)}
-                {canHaveBox && (<div className="mb-4 bg-blue-50 p-3 rounded border border-blue-200"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={isBoxSection} onChange={(e) => setIsBoxSection(e.target.checked)} className="w-4 h-4 text-blue-600 rounded"/><span className="text-xs font-bold text-blue-800 flex items-center gap-2"><Layers size={14}/> Box Section Assembly</span></label></div>)}
+                {canHaveBox && (<div className="mb-4 bg-blue-50 p-3 rounded border border-blue-200"><label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={isBoxSection} onChange={(e) => setIsBoxSection(e.target.checked)} className="w-4 h-4 text-blue-600 rounded"/><span className="text-xs font-bold text-blue-800 flex items-center gap-2"><IconLayers size={14}/> Box Section Assembly</span></label></div>)}
                 <div className="mb-4"><label className="block text-xs font-bold uppercase text-slate-500 mb-1">Input Guide</label><JointVisualizer jointType={jointType} weldTypeData={activeWeld} t1={t1} t2={t2} t3={t3} t4={t4} cornerOption={cornerOption} activeField={activeField} isBoxSection={isBoxSection}/></div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                     <div><label className="text-[10px] font-bold text-slate-500">Plate t1 (mm)</label><input type="number" value={t1} onChange={e=>setT1(e.target.value)} onFocus={()=>setActiveField('t1')} onBlur={()=>setActiveField(null)} className="w-full p-1 border rounded text-sm font-mono"/></div>
@@ -1589,11 +1560,47 @@ export default function App() {
                         </label>
                     </div>
                 </div>
-                {mode === 'advanced' && (<div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded animate-fade-in"><div className="grid grid-cols-3 gap-2"><div><label className="text-[10px] font-bold text-slate-500">Angle (°)</label><input type="number" value={angle} onChange={(e) => setAngle(Number(e.target.value))} disabled={jointType === 'three_member'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div><div><label className="text-[10px] font-bold text-slate-500">Gap (mm)</label><input type="number" value={gap} onChange={(e) => setGap(Number(e.target.value))} disabled={jointType === 'three_member' || jointType === 'corner'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div><div><label className="text-[10px] font-bold text-slate-500">Root (mm)</label><input type="number" value={rootFace} onChange={(e) => setRootFace(Number(e.target.value))} disabled={jointType === 'three_member' || jointType === 'corner'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div></div></div>)}
+                {mode === 'advanced' && (
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded animate-fade-in">
+                        {/* FILTER SECTION */}
+                        <div className="mb-4 pb-3 border-b border-yellow-200">
+                             <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-slate-500 uppercase">
+                                <IconFilter size={12}/> Filter Welding Category
+                             </div>
+                             <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-[9px] font-bold text-slate-500 mb-1">Stress Category</label>
+                                    <select value={stressCat} onChange={(e) => setStressCat(e.target.value)} className="w-full p-1 text-xs border rounded bg-white">
+                                        <option value="All">All</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] font-bold text-slate-500 mb-1">Safety Category</label>
+                                    <select value={safetyCat} onChange={(e) => setSafetyCat(e.target.value)} className="w-full p-1 text-xs border rounded bg-white">
+                                        <option value="All">All</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </div>
+                             </div>
+                        </div>
+
+                        {/* ADVANCED PARAMETERS */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <div><label className="text-[10px] font-bold text-slate-500">Angle (°)</label><input type="number" value={angle} onChange={(e) => setAngle(Number(e.target.value))} disabled={jointType === 'three_member'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div>
+                            <div><label className="text-[10px] font-bold text-slate-500">Gap (mm)</label><input type="number" value={gap} onChange={(e) => setGap(Number(e.target.value))} disabled={jointType === 'three_member' || jointType === 'corner'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div>
+                            <div><label className="text-[10px] font-bold text-slate-500">Root (mm)</label><input type="number" value={rootFace} onChange={(e) => setRootFace(Number(e.target.value))} disabled={jointType === 'three_member' || jointType === 'corner'} className="w-full p-1 border rounded text-sm font-mono disabled:bg-slate-100 disabled:text-slate-400"/></div>
+                        </div>
+                    </div>
+                )}
             </div>
  
             <div className="md:col-span-7 p-5 bg-white">
-                <h2 className="text-md font-bold text-slate-800 mb-3 flex items-center gap-2"><Info size={16} /> Technical Specification</h2>
+                <h2 className="text-md font-bold text-slate-800 mb-3 flex items-center gap-2"><IconInfo size={16} /> Technical Specification</h2>
                 <div className={`p-3 mb-4 rounded-r border-l-4 ${hasBacking ? 'bg-amber-50 border-amber-500' : 'bg-blue-50 border-blue-500'}`}>
                     <div>
                         <div className="flex justify-between items-start">
@@ -1605,7 +1612,7 @@ export default function App() {
                              <div className="flex flex-col items-end">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">Performance Class</span>
                                 <div className="flex gap-1">
-                                    {currentWeld.availableClasses?.map((cls) => (
+                                    {visibleClasses.map((cls) => (
                                         <button 
                                             key={cls}
                                             onClick={() => { setSelectedClass(cls); setShowClassDetails(true); }}
@@ -1620,7 +1627,7 @@ export default function App() {
                         
                         {/* WELD NO INFO (ADDED) */}
                         <div className="mt-2 text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded inline-flex items-center gap-2">
-                             <Hash size={12}/> Weld No. (EN 15085-3 Annex B): <span className="text-blue-600">{getWeldNumber()}</span>
+                             <IconHash size={12}/> Weld No. (EN 15085-3 Annex B): <span className="text-blue-600">{getWeldNumber()}</span>
                         </div>
  
                         {/* CLASS DETAILS PANEL */}
@@ -1630,21 +1637,21 @@ export default function App() {
                                     <div className="bg-blue-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-blue-400 font-bold uppercase">Stress</span>
                                         <div className="font-bold text-blue-900 flex flex-col items-start gap-0.5">
-                                            <div className="flex items-center gap-1"><Activity size={10}/> {currentClassDetails.stress}</div>
+                                            <div className="flex items-center gap-1"><IconActivity size={10}/> {currentClassDetails.stress}</div>
                                             <span className="text-[9px] font-normal opacity-80">{currentClassDetails.stressVal}</span>
                                         </div>
                                     </div>
                                     <div className="bg-green-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-green-400 font-bold uppercase">Safety</span>
-                                        <div className="font-bold text-green-900 flex items-center gap-1"><Shield size={10}/> {currentClassDetails.safety}</div>
+                                        <div className="font-bold text-green-900 flex items-center gap-1"><IconShield size={10}/> {currentClassDetails.safety}</div>
                                     </div>
                                     <div className="bg-purple-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-purple-400 font-bold uppercase">Volumetric</span>
-                                        <div className="font-bold text-purple-900 flex items-center gap-1"><Eye size={10}/> {currentClassDetails.volumetric}</div>
+                                        <div className="font-bold text-purple-900 flex items-center gap-1"><IconEye size={10}/> {currentClassDetails.volumetric}</div>
                                     </div>
                                     <div className="bg-orange-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-orange-400 font-bold uppercase">Surface</span>
-                                        <div className="font-bold text-orange-900 flex items-center gap-1"><RefreshCw size={10}/> {currentClassDetails.surface}</div>
+                                        <div className="font-bold text-orange-900 flex items-center gap-1"><IconRefreshCw size={10}/> {currentClassDetails.surface}</div>
                                     </div>
                                 </div>
                                 <div className="text-[10px] text-slate-500 italic border-t border-blue-100 pt-1 mt-1">
@@ -1655,10 +1662,10 @@ export default function App() {
  
                         <div className="flex flex-col gap-2 mt-3">
                            <div className="flex flex-wrap gap-2">
-                                <span className="inline-flex items-center gap-2 text-xs md:text-sm bg-indigo-100 text-indigo-900 px-3 py-1.5 rounded-md font-bold border border-indigo-200 w-fit shadow-sm"><ArrowDownToLine size={16}/> {isBoxSection ? 'Full Penetration' : currentWeld.penetration}</span>
+                                <span className="inline-flex items-center gap-2 text-xs md:text-sm bg-indigo-100 text-indigo-900 px-3 py-1.5 rounded-md font-bold border border-indigo-200 w-fit shadow-sm"><IconArrowDownToLine size={16}/> {isBoxSection ? 'Full Penetration' : currentWeld.penetration}</span>
                                 {/* ACCESSIBILITY BADGE - MODIFIED LOGIC */}
                                 <span className={`inline-flex items-center gap-2 text-xs md:text-sm px-3 py-1.5 rounded-md font-bold border w-fit shadow-sm ${weldSide === '1-sided' && showSideOption ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-100 text-emerald-900 border-emerald-200"}`}>
-                                    {weldSide === '1-sided' && showSideOption ? <EyeOff size={16}/> : <ScanEye size={16}/>}
+                                    {weldSide === '1-sided' && showSideOption ? <IconEyeOff size={16}/> : <IconScanEye size={16}/>}
                                     {showSideOption 
                                         ? (weldSide === '1-sided' ? "No Access for Inspection (Production/Maintenance)" : "Access Available for Inspection")
                                         : "Standard Inspection Access"
@@ -1669,17 +1676,17 @@ export default function App() {
                            {/* CP B2 / CP C1 Special Note */}
                            {["CP B2", "CP C1"].includes(selectedClass) && (
                                 <div className="mt-2 flex items-start gap-1 text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-1 rounded">
-                                    <Info size={12} className="mt-0.5 flex-shrink-0"/> 
+                                    <IconInfo size={12} className="mt-0.5 flex-shrink-0"/> 
                                     <span>Applicable for welds where volumetric NDT is not possible. Increased surface testing is required.</span>
                                 </div>
                            )}
                         </div>
-                        {hasBacking && (<div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-1 rounded inline-block"><AlertCircle size={12}/> Backing Bar Required (Thickness ≥ 16mm or Box)</div>)}
+                        {hasBacking && (<div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-1 rounded inline-block"><IconAlertCircle size={12}/> Backing Bar Required (Thickness ≥ 16mm or Box)</div>)}
                         
                         {/* WARNING: INVALID PLATE THICKNESS */}
                         {invalidPlates.length > 0 && (
                             <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-red-800 bg-red-100 px-2 py-1 rounded inline-block">
-                                <TriangleAlert size={12}/> Warning: Plate thickness ({invalidPlates.join(', ')}mm) not available in house.
+                                <IconTriangleAlert size={12}/> Warning: Plate thickness ({invalidPlates.join(', ')}mm) not available in house.
                             </div>
                         )}
                     </div>
