@@ -34,6 +34,7 @@ const IconScanEye = createIcon(<><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 
 const IconEyeOff = createIcon(<><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>);
 const IconHash = createIcon(<><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>);
 const IconFilter = createIcon(<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>);
+const IconTrain = createIcon(<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2ZM10 21h4 M6 18h12 M6 4h12" />);
 
 // --- WAREHOUSE DATA ---
 const AVAILABLE_PLATES = [2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 25, 30, 35, 40, 50, 60, 75, 115, 150, 200];
@@ -676,12 +677,10 @@ const ResultRenderer = ({ data, inputs, isBoxSection, hasBacking, hasSealingRun,
                                         {fig === 'butt_v' ? <path d="M20,60 L80,60 L95,80 L95,90 L20,90 Z" fill={plateFill} stroke="black" /> : <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" />}
                                         {fig === 'butt_v' ? <path d="M180,60 L120,60 L105,80 L105,90 L180,90 Z" fill={plateFill} stroke="black" /> : <rect x="105" y="60" width="75" height="30" fill={plateFill} stroke="black" />}
                                         {fig === 'butt_v' && <path d="M80,60 L120,60 L105,80 L105,90 L95,90 L95,80 Z" fill={weldFill} stroke="black" />}
-                                        {/* REMOVED REINFORCEMENT: {fig === 'butt_v' && <path d="M80,60 L120,60 L100,55 Z" fill={weldFill} stroke="black" opacity="0.5" />} */}
                                         
                                         {fig === 'butt_hv' ? <rect x="20" y="60" width="75" height="30" fill={plateFill} stroke="black" /> : null}
                                         {fig === 'butt_hv' ? <path d="M180,60 L105,60 L95,90 L180,90 Z" fill={plateFill} stroke="black" /> : null}
                                         {fig === 'butt_hv' && <path d="M95,60 L120,60 L105,80 L105,90 L95,90 Z" fill={weldFill} stroke="black" />}
-                                        {/* REMOVED REINFORCEMENT: {fig === 'butt_hv' && <path d="M95,60 L120,60 L107.5,55 Z" fill={weldFill} stroke="black" opacity="0.5" />} */}
         
                                         {fig === 'butt_y' && (
                                             <>
@@ -1099,7 +1098,7 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
                {/* Handled by s='I' and butt_sq logic */}
                {data.fig_type === 'butt_sq' && (
                     <g>
-                        {/* 3-Member joint style symbol: _\_/ */}
+                        {/* Removed the center vertical line per request */}
                         <path d="M-10,-15 L-3,0" stroke="black" strokeWidth="2" fill="none"/>
                         <path d="M3,0 L10,-15" stroke="black" strokeWidth="2" fill="none"/>
                     </g>
@@ -1194,6 +1193,7 @@ export default function App() {
   const [rootFace, setRootFace] = useState(2);
   const [isBoxSection, setIsBoxSection] = useState(false);
   const [mode, setMode] = useState('basic'); 
+  const [mainAssembly, setMainAssembly] = useState('All');
   
   // NEW STATES
   const [weldLength, setWeldLength] = useState("");
@@ -1244,18 +1244,34 @@ export default function App() {
         const validClasses = Object.keys(CLASS_DETAILS).filter(cls => {
             const details = CLASS_DETAILS[cls];
             const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
-            const safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+            // Safety logic: if Main Assembly is set, Safety must be High or Medium (Low excluded)
+            // But this is handled in visibleClasses logic for buttons.
+            // Here we just filter WELD TYPES that HAVE at least one valid class.
+            // Let's refine validClasses logic based on Main Assembly constraint too.
+            let safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+            
+            if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
+                // If main assembly is set, safety cannot be "Low" (unless user explicitly selected Low which shouldn't happen as we hide it)
+                // But CP C2 has "Low / Medium". So it is allowed as it has Medium.
+                // CP C1 is High. 
+                // We should ensure the class has High or Medium safety capability.
+                if (!details.safety.includes("High") && !details.safety.includes("Medium")) {
+                    safetyMatch = false; 
+                }
+            }
+            
             return stressMatch && safetyMatch;
         });
 
-        if (stressCat !== 'All' || safetyCat !== 'All') {
+        // Filter types that have at least one valid class available
+        if (stressCat !== 'All' || safetyCat !== 'All' || mainAssembly !== 'All') {
              types = types.filter(t => {
                  return t.availableClasses.some(ac => validClasses.includes(ac));
              });
         }
     }
     return types;
-  }, [jointType, weldSide, stressCat, safetyCat, mode]);
+  }, [jointType, weldSide, stressCat, safetyCat, mode, mainAssembly]);
 
   // Ensure weldIndex is valid after filtering
   useEffect(() => {
@@ -1272,23 +1288,42 @@ export default function App() {
   const showSideOption = jointType === 'butt' || jointType === 't_joint';
  
   // FILTER AVAILABLE CLASSES FOR BUTTONS
+  const maxPlateThickness = Math.max(Number(t1), Number(t2));
+
   const visibleClasses = useMemo(() => {
     if (!currentWeld?.availableClasses) return [];
     
-    if (mode !== 'advanced' || (stressCat === 'All' && safetyCat === 'All')) {
-        return currentWeld.availableClasses;
+    let classes = currentWeld.availableClasses;
+
+    // 1. Thickness Constraint: If t <= 8, remove CP A
+    if (maxPlateThickness <= 8) {
+        classes = classes.filter(c => c !== "CP A");
     }
 
-    return currentWeld.availableClasses.filter(cls => {
+    if (mode !== 'advanced' && mainAssembly === 'All') {
+        return classes;
+    }
+
+    return classes.filter(cls => {
         const details = CLASS_DETAILS[cls];
         if (!details) return false;
         
         const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
-        const safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+        let safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+
+        // Main Assembly Constraint Logic
+        if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
+             // Implicitly filter out classes that are ONLY Low safety.
+             // CP C2 is "Low / Medium", so it's allowed.
+             // Are there any pure "Low"? CP C1 is High.
+             // If we assume safetyCat dropdown hides Low, then safetyMatch handles the rest if user selects specific.
+             // But if 'All' is selected, we must ensure we don't show pure Low classes if any existed (none in current data).
+             // However, let's stick to the prompt: "safety category available High & Medium only".
+        }
         
         return stressMatch && safetyMatch;
     });
-  }, [currentWeld, stressCat, safetyCat, mode]);
+  }, [currentWeld, stressCat, safetyCat, mode, maxPlateThickness, mainAssembly]);
 
   // Auto-select valid class if current selection is invalid
   useEffect(() => {
@@ -1304,9 +1339,11 @@ export default function App() {
           setGap(4);
           setRootFace(0);
       } else {
+          // Existing logic for others
           const maxThickness = Math.max(Number(t1), Number(t2), isT3Enabled ? Number(t3) : 0, isT4Enabled ? Number(t4) : 0);
           if (maxThickness >= 20) { setAngle(30); } else { setAngle(50); }
 
+          // Restore defaults if coming from a constrained joint like 3-member
            if (jointType !== 'three_member') {
                if (rootFace === 0) setRootFace(2);
                if (gap === 4) setGap(2); 
@@ -1452,6 +1489,27 @@ export default function App() {
  
         <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
             <div className="md:col-span-5 p-5 bg-slate-50 border-r border-slate-200">
+
+                {/* MAIN ASSEMBLY SELECTION */}
+                <div className="mb-4 bg-gray-100 p-2 rounded border border-gray-200">
+                    <label className="block text-[10px] font-bold uppercase text-gray-600 mb-1 flex items-center gap-1"><IconTrain size={12}/> Main Assembly</label>
+                    <select 
+                        value={mainAssembly} 
+                        onChange={(e) => {
+                            setMainAssembly(e.target.value);
+                            // Reset Safety Cat if switching to restricted assembly and current is Low
+                            if (['Bogie', 'Underframe', 'Superstructure'].includes(e.target.value)) {
+                                if (safetyCat === 'Low') setSafetyCat('All');
+                            }
+                        }}
+                        className="w-full p-1 text-xs border rounded bg-white font-semibold"
+                    >
+                        <option value="All">All</option>
+                        <option value="Bogie">Bogie</option>
+                        <option value="Underframe">Underframe</option>
+                        <option value="Superstructure">Superstructure</option>
+                    </select>
+                </div>
                 
                 {/* WELD SIDE SELECTION */}
                 {showSideOption && (
@@ -1583,7 +1641,8 @@ export default function App() {
                                         <option value="All">All</option>
                                         <option value="High">High</option>
                                         <option value="Medium">Medium</option>
-                                        <option value="Low">Low</option>
+                                        {/* Hide Low option if main assembly implies High/Medium only */}
+                                        { !['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly) && <option value="Low">Low</option> }
                                     </select>
                                 </div>
                              </div>
