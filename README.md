@@ -40,66 +40,61 @@ const IconTrain = createIcon(<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a
 const AVAILABLE_PLATES = [2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 25, 30, 35, 40, 50, 60, 75, 115, 150, 200];
  
 // --- EN 15085-3 CLASS DETAILS (Table 3) ---
+// Updated with validPairs AND specific stressVal for each pair
 const CLASS_DETAILS = {
     "CP A": {
-        stress: "High",
-        stressVal: "S ≥ 0.9",
-        safety: "High",
         inspection: "CT 1",
         volumetric: "100%",
         surface: "100%",
         visual: "100%",
-        desc: "Highest safety requirements. Full testing."
+        desc: "Highest safety requirements. Full testing.",
+        validPairs: [{ stress: "High", safety: "High", stressVal: "S ≥ 0.9" }]
     },
     "CP B1": {
-        stress: "Medium",
-        stressVal: "0.75 ≤ S ≤ 0.9",
-        safety: "High",
         inspection: "CT 2",
         volumetric: "10%",
         surface: "10%",
         visual: "100%",
-        desc: "High safety, medium stress."
+        desc: "High safety, medium stress.",
+        validPairs: [{ stress: "Medium", safety: "High", stressVal: "0.75 ≤ S ≤ 0.9" }]
     },
     "CP B2": {
-        stress: "High",
-        stressVal: "S ≥ 0.9",
-        safety: "Medium",
         inspection: "CT 2",
         volumetric: "10%",
         surface: "10%",
         visual: "100%",
-        desc: "High stress, medium safety."
+        desc: "High stress, medium safety.",
+        validPairs: [{ stress: "High", safety: "Medium", stressVal: "S ≥ 0.9" }]
     },
     "CP C1": {
-        stress: "Low",
-        stressVal: "S < 0.75",
-        safety: "High",
         inspection: "CT 2",
         volumetric: "10%",
         surface: "10%",
         visual: "100%",
-        desc: "High safety, low stress."
+        desc: "High safety, low stress.",
+        validPairs: [{ stress: "Low", safety: "High", stressVal: "S < 0.75" }]
     },
     "CP C2": {
-        stress: "High / Medium",
-        stressVal: "S ≥ 0.9 / 0.75 ≤ S ≤ 0.9",
-        safety: "Low / Medium",
         inspection: "CT 3",
         volumetric: "Not required",
         surface: "Not required",
         visual: "100%",
-        desc: "General usage. Visual check only."
+        desc: "General usage. Visual check only.",
+        validPairs: [
+            { stress: "High", safety: "Low", stressVal: "S ≥ 0.9" },
+            { stress: "Medium", safety: "Medium", stressVal: "0.75 ≤ S ≤ 0.9" }
+        ]
     },
     "CP C3": {
-        stress: "Medium / Low",
-        stressVal: "S < 0.75",
-        safety: "Low / Medium",
         inspection: "CT 4",
         volumetric: "Not required",
         surface: "Not required",
         visual: "100%",
-        desc: "Low safety requirements."
+        desc: "Low safety requirements.",
+        validPairs: [
+            { stress: "Medium", safety: "Low", stressVal: "0.75 ≤ S ≤ 0.9" },
+            { stress: "Low", safety: "Medium", stressVal: "S < 0.75" }
+        ]
     }
 };
  
@@ -1234,6 +1229,8 @@ export default function App() {
  
   // DYNAMIC FILTERING OF WELD TYPES BASED ON SIDE
   const allWeldTypes = WELD_DATA[jointType].types;
+  
+  // Updated filteredWeldTypes to use validPairs for strict filtering
   const filteredWeldTypes = useMemo(() => {
     let types = WELD_DATA[jointType].types;
 
@@ -1252,40 +1249,35 @@ export default function App() {
          }
     }
 
-    // Filter by Stress/Safety Category
-    if (mode === 'advanced') {
-        const validClasses = Object.keys(CLASS_DETAILS).filter(cls => {
-            const details = CLASS_DETAILS[cls];
-            const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
-            let safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
-            
-            if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
-                if (!details.safety.includes("High") && !details.safety.includes("Medium")) {
-                    safetyMatch = false; 
-                }
-            }
-            
-            return stressMatch && safetyMatch;
-        });
-
-        // If advanced filters are active OR main assembly is selected
-        if (stressCat !== 'All' || safetyCat !== 'All' || mainAssembly !== 'All') {
-             types = types.filter(t => {
-                 return t.availableClasses.some(ac => validClasses.includes(ac));
+    // Filter by Stress/Safety Category using new strict pairing logic
+    // Even in basic mode, we respect Main Assembly safety constraints
+    types = types.filter(t => {
+         const validClassesForType = t.availableClasses.filter(cls => {
+             const details = CLASS_DETAILS[cls];
+             if (!details) return false;
+             
+             const pairs = details.validPairs || [];
+             
+             // Check pairing match with user selection
+             const matchingPairs = pairs.filter(p => {
+                 const sMatch = mode !== 'advanced' || stressCat === 'All' || p.stress === stressCat;
+                 const saMatch = mode !== 'advanced' || safetyCat === 'All' || p.safety === safetyCat;
+                 return sMatch && saMatch;
              });
-        }
-    } else if (mainAssembly !== 'All') {
-        // Even in Basic Mode, if Main Assembly is selected, we filter weld types that don't support High/Medium safety
-         const validClasses = Object.keys(CLASS_DETAILS).filter(cls => {
-            const details = CLASS_DETAILS[cls];
-            // Main Assembly Constraint: Safety must be High or Medium
-            return details.safety.includes("High") || details.safety.includes("Medium");
-        });
-        
-        types = types.filter(t => {
-             return t.availableClasses.some(ac => validClasses.includes(ac));
-        });
-    }
+
+             if (matchingPairs.length === 0) return false;
+
+             // Check Main Assembly Safety Constraint
+             if (mainAssembly !== 'All') {
+                 // Must have at least one matching pair with Safety High or Medium
+                 if (!matchingPairs.some(p => p.safety === 'High' || p.safety === 'Medium')) return false;
+             }
+
+             return true;
+         });
+
+         return validClassesForType.length > 0;
+    });
 
     return types;
   }, [jointType, weldSide, stressCat, safetyCat, mode, mainAssembly]);
@@ -1307,6 +1299,7 @@ export default function App() {
   // FILTER AVAILABLE CLASSES FOR BUTTONS
   const maxPlateThickness = Math.max(Number(t1), Number(t2));
 
+  // Updated visibleClasses to use validPairs for strict filtering
   const visibleClasses = useMemo(() => {
     if (!currentWeld?.availableClasses) return [];
     
@@ -1317,33 +1310,31 @@ export default function App() {
         classes = classes.filter(c => c !== "CP A");
     }
 
-    // 2. Main Assembly Constraint (Implicit Filtering)
-    // If Main Assembly is NOT All, we MUST filter for High/Medium Safety
-    if (mainAssembly !== 'All') {
-        classes = classes.filter(cls => {
-            const details = CLASS_DETAILS[cls];
-            if (!details) return false;
-            // Must have High or Medium safety
-            return details.safety.includes("High") || details.safety.includes("Medium");
-        });
-    }
+    // 2. Strict Filter based on Stress/Safety/MainAssembly Pairs
+    classes = classes.filter(cls => {
+        const details = CLASS_DETAILS[cls];
+        if (!details) return false;
 
-    // 3. Advanced Mode Explicit Filtering
-    // Only apply if we are in Advanced Mode AND specific categories are selected
-    if (mode === 'advanced') {
-         classes = classes.filter(cls => {
-            const details = CLASS_DETAILS[cls];
-            if (!details) return false;
-            
-            const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
-            // If Main Assembly is All, use safetyCat filter. 
-            // If Main Assembly is set, we already filtered for High/Medium above.
-            // But if user ALSO selects a specific Safety Cat (e.g. Medium), we must respect that too.
-            const safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
-            
-            return stressMatch && safetyMatch;
+        const pairs = details.validPairs || [];
+
+        // Find pairs matching current Stress/Safety selection
+        const matchingPairs = pairs.filter(p => {
+             const sMatch = mode !== 'advanced' || stressCat === 'All' || p.stress === stressCat;
+             const saMatch = mode !== 'advanced' || safetyCat === 'All' || p.safety === safetyCat;
+             return sMatch && saMatch;
         });
-    }
+
+        if (matchingPairs.length === 0) return false;
+
+        // Main Assembly Constraint
+        if (mainAssembly !== 'All') {
+             // Must have at least one matching pair with Safety High or Medium
+             const isSafeEnough = matchingPairs.some(p => p.safety === 'High' || p.safety === 'Medium');
+             if (!isSafeEnough) return false;
+        }
+
+        return true;
+    });
 
     return classes;
   }, [currentWeld, stressCat, safetyCat, mode, maxPlateThickness, mainAssembly]);
@@ -1380,21 +1371,49 @@ export default function App() {
  
   const currentClassDetails = CLASS_DETAILS[selectedClass] || {};
 
-  // NEW HELPER: Function to render stacked text if contains "/"
+  // --- NEW LOGIC: FILTERED DISPLAY DETAILS ---
+  // Calculates the Stress/Safety text to display based on the selected class AND user filters/main assembly.
+  const getFilteredDetails = () => {
+      const details = CLASS_DETAILS[selectedClass];
+      if (!details) return { stress: "-", safety: "-", stressVal: "-" };
+
+      let pairs = details.validPairs || [];
+
+      // 1. Filter by Main Assembly (Restricted assemblies remove Low Safety)
+      if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
+          pairs = pairs.filter(p => p.safety === 'High' || p.safety === 'Medium');
+      }
+
+      // 2. Filter by Advanced Mode Selection
+      // If user selected specific categories in Advanced Mode, filter pairs to match.
+      if (mode === 'advanced') {
+          if (stressCat !== 'All') {
+              pairs = pairs.filter(p => p.stress === stressCat);
+          }
+          if (safetyCat !== 'All') {
+              pairs = pairs.filter(p => p.safety === safetyCat);
+          }
+      }
+
+      // 3. Deduplicate results for display (e.g., if multiple pairs result in "High", show just "High")
+      const uniqueStress = [...new Set(pairs.map(p => p.stress))];
+      const uniqueSafety = [...new Set(pairs.map(p => p.safety))];
+      const uniqueStressVal = [...new Set(pairs.map(p => p.stressVal))];
+
+      return {
+          stress: uniqueStress.join(" / "),
+          safety: uniqueSafety.join(" / "),
+          stressVal: uniqueStressVal.join(" / ")
+      };
+  };
+
+  const displayDetails = getFilteredDetails();
+
+  // Helper function to render stacked text if contains "/"
   const renderStackedText = (text) => {
     if (!text) return null;
     if (text.includes('/')) {
         const parts = text.split('/').map(s => s.trim());
-        
-        // Custom logic: If Main Assembly is restricted, filter out "Low" if possible
-        if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
-            // If parts contain Low and something else (Medium or High), hide Low.
-            // e.g. "Low / Medium" -> "Medium"
-            if (parts.includes("Low") && (parts.includes("Medium") || parts.includes("High"))) {
-                 return <div className="flex flex-col items-start">{parts.filter(p => p !== "Low").map((p,i) => <span key={i}>{p}</span>)}</div>
-            }
-        }
-
         return (
             <div className="flex flex-col items-start leading-tight">
                 {parts.map((part, i) => (
@@ -1744,13 +1763,14 @@ export default function App() {
                                     <div className="bg-blue-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-blue-400 font-bold uppercase">Stress</span>
                                         <div className="font-bold text-blue-900 flex flex-col items-start gap-0.5">
-                                            <div className="flex items-center gap-1"><IconActivity size={10}/> {renderStackedText(currentClassDetails.stress)}</div>
-                                            <span className="text-[9px] font-normal opacity-80">{currentClassDetails.stressVal}</span>
+                                            {/* UPDATED: Use displayDetails which dynamically filters pairs */}
+                                            <div className="flex items-center gap-1"><IconActivity size={10}/> {renderStackedText(displayDetails.stress)}</div>
+                                            <span className="text-[9px] font-normal opacity-80">{renderStackedText(displayDetails.stressVal)}</span>
                                         </div>
                                     </div>
                                     <div className="bg-green-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-green-400 font-bold uppercase">Safety</span>
-                                        <div className="font-bold text-green-900 flex flex-col gap-0.5"><div className="flex items-center gap-1"><IconShield size={10}/> {renderStackedText(currentClassDetails.safety)}</div></div>
+                                        <div className="font-bold text-green-900 flex flex-col gap-0.5"><div className="flex items-center gap-1"><IconShield size={10}/> {renderStackedText(displayDetails.safety)}</div></div>
                                     </div>
                                     <div className="bg-purple-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-purple-400 font-bold uppercase">Volumetric Test</span>
