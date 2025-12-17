@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
 // --- INLINE ICONS (Fixed: Accepting props for size & className) ---
-const createIcon = (path) => ({ size = 16, className = "", ...props }) => (
+const createIcon = (children) => ({ size = 16, className = "", ...props }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     width={size} 
@@ -15,7 +15,7 @@ const createIcon = (path) => ({ size = 16, className = "", ...props }) => (
     className={className} 
     {...props}
   >
-    {path}
+    {children}
   </svg>
 );
 
@@ -90,6 +90,16 @@ const CLASS_DETAILS = {
         surface: "Not required",
         visual: "100%",
         desc: "General usage. Visual check only."
+    },
+    "CP C3": {
+        stress: "Medium / Low",
+        stressVal: "S < 0.75",
+        safety: "Low / Medium",
+        inspection: "CT 4",
+        volumetric: "Not required",
+        surface: "Not required",
+        visual: "100%",
+        desc: "Low safety requirements."
     }
 };
  
@@ -126,7 +136,7 @@ const WELD_DATA = {
         symbol: 'Y',
         min_t: 5,
         max_t: 20,
-        availableClasses: ["CP C2"], 
+        availableClasses: ["CP C2", "CP C3"], 
         penetration: "Partial Penetration", 
         description: "Single V with root face, no gap.",
         fig_type: "butt_y"
@@ -137,7 +147,7 @@ const WELD_DATA = {
         symbol: 'HY',
         min_t: 3,
         max_t: 15,
-        availableClasses: ["CP C2"],
+        availableClasses: ["CP C2", "CP C3"],
         penetration: "Partial Penetration",
         description: "Single bevel with large root face.",
         fig_type: "butt_hy" 
@@ -176,7 +186,7 @@ const WELD_DATA = {
         symbol: 'F',
         min_t: 2, 
         max_t: 50,
-        availableClasses: ["CP C2"], 
+        availableClasses: ["CP C2", "CP C3"], 
         penetration: "Partial Penetration",
         description: "No preparation required.",
         fig_type: "t_fillet"
@@ -199,7 +209,7 @@ const WELD_DATA = {
         symbol: 'HY',
         min_t: 3,
         max_t: 15,
-        availableClasses: ["CP C2"], 
+        availableClasses: ["CP C2", "CP C3"], 
         penetration: "Partial Penetration",
         description: "Single bevel with large root face.",
         fig_type: "t_hy"
@@ -243,7 +253,7 @@ const WELD_DATA = {
         symbol: 'F',
         min_t: 2,
         max_t: 15,
-        availableClasses: ["CP C1", "CP C2"],
+        availableClasses: ["CP C1", "CP C2", "CP C3"],
         penetration: "Partial Penetration",
         description: "Standard lap fillet.",
         fig_type: "lap"
@@ -929,6 +939,9 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
            {/* Tail Fork at the end (x=280) if NDT text exists */}
            {ndtText && (
                <g>
+                    {/* NEW: TYP Text Above UT/MT */}
+                    <text x="310" y="30" fontSize="8" fontWeight="bold" textAnchor="middle" fill="black">TYP (if applicable)</text>
+                    
                    {/* Upper Branch (45 deg) */}
                    <line x1="280" y1="50" x2="295" y2="35" stroke="black" strokeWidth="2" />
                    {/* Lower Branch (-45 deg) */}
@@ -1121,12 +1134,13 @@ const SymbolRenderer = ({ data, inputs, isBoxSection, hasBacking, weldLength, is
            {/* Weld Length - RIGHT of symbol */}
            {weldLength && !isWeldAllAround && (
                 <>
-                    <text x="165" y="45" textAnchor="start" className="text-xs font-bold font-mono">
+                    {/* Changed font-bold to font-normal per request */}
+                    <text x="165" y="45" textAnchor="start" className="text-xs font-normal font-mono">
                         {weldLength}
                     </text>
                     {/* MODIFIED: Show bottom length for standard double sided OR T-Joint 2-Sided Fillet */}
                     {(isDouble || (inputs.jointType === 't_joint' && s === 'F' && weldSide === '2-sided') || (inputs.jointType === 'corner' && inputs.cornerOption === '1')) && (
-                        <text x="165" y="80" textAnchor="start" className="text-xs font-bold font-mono">
+                        <text x="165" y="80" textAnchor="start" className="text-xs font-normal font-mono">
                             {weldLength}
                         </text>
                     )}
@@ -1217,7 +1231,6 @@ export default function App() {
   
   // --- NEW STATE: SELECTED WELD CLASS ---
   const [selectedClass, setSelectedClass] = useState("CP A");
-  const [showClassDetails, setShowClassDetails] = useState(false);
  
   // DYNAMIC FILTERING OF WELD TYPES BASED ON SIDE
   const allWeldTypes = WELD_DATA[jointType].types;
@@ -1244,17 +1257,9 @@ export default function App() {
         const validClasses = Object.keys(CLASS_DETAILS).filter(cls => {
             const details = CLASS_DETAILS[cls];
             const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
-            // Safety logic: if Main Assembly is set, Safety must be High or Medium (Low excluded)
-            // But this is handled in visibleClasses logic for buttons.
-            // Here we just filter WELD TYPES that HAVE at least one valid class.
-            // Let's refine validClasses logic based on Main Assembly constraint too.
             let safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
             
             if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
-                // If main assembly is set, safety cannot be "Low" (unless user explicitly selected Low which shouldn't happen as we hide it)
-                // But CP C2 has "Low / Medium". So it is allowed as it has Medium.
-                // CP C1 is High. 
-                // We should ensure the class has High or Medium safety capability.
                 if (!details.safety.includes("High") && !details.safety.includes("Medium")) {
                     safetyMatch = false; 
                 }
@@ -1263,13 +1268,25 @@ export default function App() {
             return stressMatch && safetyMatch;
         });
 
-        // Filter types that have at least one valid class available
+        // If advanced filters are active OR main assembly is selected
         if (stressCat !== 'All' || safetyCat !== 'All' || mainAssembly !== 'All') {
              types = types.filter(t => {
                  return t.availableClasses.some(ac => validClasses.includes(ac));
              });
         }
+    } else if (mainAssembly !== 'All') {
+        // Even in Basic Mode, if Main Assembly is selected, we filter weld types that don't support High/Medium safety
+         const validClasses = Object.keys(CLASS_DETAILS).filter(cls => {
+            const details = CLASS_DETAILS[cls];
+            // Main Assembly Constraint: Safety must be High or Medium
+            return details.safety.includes("High") || details.safety.includes("Medium");
+        });
+        
+        types = types.filter(t => {
+             return t.availableClasses.some(ac => validClasses.includes(ac));
+        });
     }
+
     return types;
   }, [jointType, weldSide, stressCat, safetyCat, mode, mainAssembly]);
 
@@ -1300,29 +1317,35 @@ export default function App() {
         classes = classes.filter(c => c !== "CP A");
     }
 
-    if (mode !== 'advanced' && mainAssembly === 'All') {
-        return classes;
+    // 2. Main Assembly Constraint (Implicit Filtering)
+    // If Main Assembly is NOT All, we MUST filter for High/Medium Safety
+    if (mainAssembly !== 'All') {
+        classes = classes.filter(cls => {
+            const details = CLASS_DETAILS[cls];
+            if (!details) return false;
+            // Must have High or Medium safety
+            return details.safety.includes("High") || details.safety.includes("Medium");
+        });
     }
 
-    return classes.filter(cls => {
-        const details = CLASS_DETAILS[cls];
-        if (!details) return false;
-        
-        const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
-        let safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+    // 3. Advanced Mode Explicit Filtering
+    // Only apply if we are in Advanced Mode AND specific categories are selected
+    if (mode === 'advanced') {
+         classes = classes.filter(cls => {
+            const details = CLASS_DETAILS[cls];
+            if (!details) return false;
+            
+            const stressMatch = stressCat === 'All' || details.stress.includes(stressCat);
+            // If Main Assembly is All, use safetyCat filter. 
+            // If Main Assembly is set, we already filtered for High/Medium above.
+            // But if user ALSO selects a specific Safety Cat (e.g. Medium), we must respect that too.
+            const safetyMatch = safetyCat === 'All' || details.safety.includes(safetyCat);
+            
+            return stressMatch && safetyMatch;
+        });
+    }
 
-        // Main Assembly Constraint Logic
-        if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
-             // Implicitly filter out classes that are ONLY Low safety.
-             // CP C2 is "Low / Medium", so it's allowed.
-             // Are there any pure "Low"? CP C1 is High.
-             // If we assume safetyCat dropdown hides Low, then safetyMatch handles the rest if user selects specific.
-             // But if 'All' is selected, we must ensure we don't show pure Low classes if any existed (none in current data).
-             // However, let's stick to the prompt: "safety category available High & Medium only".
-        }
-        
-        return stressMatch && safetyMatch;
-    });
+    return classes;
   }, [currentWeld, stressCat, safetyCat, mode, maxPlateThickness, mainAssembly]);
 
   // Auto-select valid class if current selection is invalid
@@ -1356,6 +1379,32 @@ export default function App() {
   }, [isWeldAllAround]);
  
   const currentClassDetails = CLASS_DETAILS[selectedClass] || {};
+
+  // NEW HELPER: Function to render stacked text if contains "/"
+  const renderStackedText = (text) => {
+    if (!text) return null;
+    if (text.includes('/')) {
+        const parts = text.split('/').map(s => s.trim());
+        
+        // Custom logic: If Main Assembly is restricted, filter out "Low" if possible
+        if (['Bogie', 'Underframe', 'Superstructure'].includes(mainAssembly)) {
+            // If parts contain Low and something else (Medium or High), hide Low.
+            // e.g. "Low / Medium" -> "Medium"
+            if (parts.includes("Low") && (parts.includes("Medium") || parts.includes("High"))) {
+                 return <div className="flex flex-col items-start">{parts.filter(p => p !== "Low").map((p,i) => <span key={i}>{p}</span>)}</div>
+            }
+        }
+
+        return (
+            <div className="flex flex-col items-start leading-tight">
+                {parts.map((part, i) => (
+                    <span key={i} className="block">{part}</span>
+                ))}
+            </div>
+        );
+    }
+    return text;
+  };
  
   // Logic for showing options
   const showSealingRunOption = weldSide === '2-sided' && jointType === 'butt' && (currentWeld?.symbol === 'V' || currentWeld?.symbol === 'HV');
@@ -1673,7 +1722,7 @@ export default function App() {
                                     {visibleClasses.map((cls) => (
                                         <button 
                                             key={cls}
-                                            onClick={() => { setSelectedClass(cls); setShowClassDetails(true); }}
+                                            onClick={() => setSelectedClass(cls)}
                                             className={`text-[10px] px-2 py-1 rounded border ${selectedClass === cls ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}
                                         >
                                             {cls}
@@ -1688,27 +1737,27 @@ export default function App() {
                              <IconHash size={12}/> Weld No. (EN 15085-3 Annex B): <span className="text-blue-600">{getWeldNumber()}</span>
                         </div>
  
-                        {/* CLASS DETAILS PANEL */}
-                        {showClassDetails && (
+                        {/* CLASS DETAILS PANEL - Always Shown */}
+                        {true && (
                             <div className="mt-3 bg-white/50 rounded-lg border border-blue-100 p-2 text-xs">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
                                     <div className="bg-blue-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-blue-400 font-bold uppercase">Stress</span>
                                         <div className="font-bold text-blue-900 flex flex-col items-start gap-0.5">
-                                            <div className="flex items-center gap-1"><IconActivity size={10}/> {currentClassDetails.stress}</div>
+                                            <div className="flex items-center gap-1"><IconActivity size={10}/> {renderStackedText(currentClassDetails.stress)}</div>
                                             <span className="text-[9px] font-normal opacity-80">{currentClassDetails.stressVal}</span>
                                         </div>
                                     </div>
                                     <div className="bg-green-50 p-1.5 rounded">
                                         <span className="block text-[9px] text-green-400 font-bold uppercase">Safety</span>
-                                        <div className="font-bold text-green-900 flex items-center gap-1"><IconShield size={10}/> {currentClassDetails.safety}</div>
+                                        <div className="font-bold text-green-900 flex flex-col gap-0.5"><div className="flex items-center gap-1"><IconShield size={10}/> {renderStackedText(currentClassDetails.safety)}</div></div>
                                     </div>
                                     <div className="bg-purple-50 p-1.5 rounded">
-                                        <span className="block text-[9px] text-purple-400 font-bold uppercase">Volumetric</span>
+                                        <span className="block text-[9px] text-purple-400 font-bold uppercase">Volumetric Test</span>
                                         <div className="font-bold text-purple-900 flex items-center gap-1"><IconEye size={10}/> {currentClassDetails.volumetric}</div>
                                     </div>
                                     <div className="bg-orange-50 p-1.5 rounded">
-                                        <span className="block text-[9px] text-orange-400 font-bold uppercase">Surface</span>
+                                        <span className="block text-[9px] text-orange-400 font-bold uppercase">Surface Test</span>
                                         <div className="font-bold text-orange-900 flex items-center gap-1"><IconRefreshCw size={10}/> {currentClassDetails.surface}</div>
                                     </div>
                                 </div>
