@@ -1215,6 +1215,9 @@ export default function App() {
   const [weldSide, setWeldSide] = useState('1-sided');
   const [hasSealingRun, setHasSealingRun] = useState(false); 
   const [hasAdditionalFillet, setHasAdditionalFillet] = useState(false);
+  
+  // NEW STATE: Inspection Access
+  const [inspectionAccess, setInspectionAccess] = useState('yes');
 
   // New States for Stress/Safety Filtering
   const [stressCat, setStressCat] = useState('All');
@@ -1582,7 +1585,7 @@ export default function App() {
                 {showSideOption && (
                     <div className="mb-4 bg-indigo-50 p-2 rounded border border-indigo-100">
                         <label className="block text-[10px] font-bold uppercase text-indigo-800 mb-1">Weld Side</label>
-                        <div className="flex gap-2 mb-1">
+                        <div className="flex gap-2 mb-2">
                             <button 
                                 onClick={() => setWeldSide('1-sided')}
                                 className={`flex-1 text-xs border rounded py-1 font-bold ${weldSide === '1-sided' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}
@@ -1596,8 +1599,25 @@ export default function App() {
                                 2-Sided Weld
                             </button>
                         </div>
+
+                        {/* INSPECTION ACCESS SELECTION */}
+                        <label className="block text-[10px] font-bold uppercase text-indigo-800 mb-1">Inspection Access</label>
+                        <div className="flex gap-2 mb-1">
+                            <button 
+                                onClick={() => setInspectionAccess('yes')}
+                                className={`flex-1 text-xs border rounded py-1 font-bold ${inspectionAccess === 'yes' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}
+                            >
+                                Possible
+                            </button>
+                            <button 
+                                onClick={() => setInspectionAccess('no')}
+                                className={`flex-1 text-xs border rounded py-1 font-bold ${inspectionAccess === 'no' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-600 border-indigo-200'}`}
+                            >
+                                Not Possible
+                            </button>
+                        </div>
                         <p className="text-[9px] text-indigo-600 italic">
-                            {weldSide === '1-sided' ? "Don't have access for inspection in production & maintenance." : "Have access for inspection in production & maintenance."}
+                            {inspectionAccess === 'no' ? "No access for inspection in production & maintenance." : "Access available for inspection in production & maintenance."}
                         </p>
                     </div>
                 )}
@@ -1791,12 +1811,9 @@ export default function App() {
                            <div className="flex flex-wrap gap-2">
                                 <span className="inline-flex items-center gap-2 text-xs md:text-sm bg-indigo-100 text-indigo-900 px-3 py-1.5 rounded-md font-bold border border-indigo-200 w-fit shadow-sm"><IconArrowDownToLine size={16}/> {isBoxSection ? 'Full Penetration' : currentWeld.penetration}</span>
                                 {/* ACCESSIBILITY BADGE - MODIFIED LOGIC */}
-                                <span className={`inline-flex items-center gap-2 text-xs md:text-sm px-3 py-1.5 rounded-md font-bold border w-fit shadow-sm ${weldSide === '1-sided' && showSideOption ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-100 text-emerald-900 border-emerald-200"}`}>
-                                    {weldSide === '1-sided' && showSideOption ? <IconEyeOff size={16}/> : <IconScanEye size={16}/>}
-                                    {showSideOption 
-                                        ? (weldSide === '1-sided' ? "No Access for Inspection (Production/Maintenance)" : "Access Available for Inspection")
-                                        : "Standard Inspection Access"
-                                    }
+                                <span className={`inline-flex items-center gap-2 text-xs md:text-sm px-3 py-1.5 rounded-md font-bold border w-fit shadow-sm ${inspectionAccess === 'no' ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-100 text-emerald-900 border-emerald-200"}`}>
+                                    {inspectionAccess === 'no' ? <IconEyeOff size={16}/> : <IconScanEye size={16}/>}
+                                    {inspectionAccess === 'no' ? "No Access for Inspection" : "Access Available for Inspection"}
                                 </span>
                            </div>
                            
