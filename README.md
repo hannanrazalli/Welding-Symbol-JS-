@@ -1432,6 +1432,14 @@ export default function App() {
   const showSealingRunOption = weldSide === '2-sided' && jointType === 'butt' && (currentWeld?.symbol === 'V' || currentWeld?.symbol === 'HV');
   const showBackingOption = weldSide === '1-sided' && jointType !== 'corner' && jointType !== 'three_member' && (currentWeld?.symbol === 'V' || currentWeld?.symbol === 'HV');
   const isBackingAuto = Math.max(Number(t1), Number(t2)) >= 16;
+
+  // --- FIX: Auto-enable backing bar state when required ---
+  useEffect(() => {
+      // If Box Section OR (Backing Option Available AND Auto Backing Triggered by thickness)
+      if (isBoxSection || (showBackingOption && isBackingAuto)) {
+          if (!hasBacking) setHasBacking(true);
+      }
+  }, [isBoxSection, showBackingOption, isBackingAuto, hasBacking]);
   
   // NEW: Additional Fillet Option
   const showAdditionalFilletOption = (jointType === 't_joint' && weldSide === '1-sided' && (currentWeld?.symbol === 'HV' || currentWeld?.symbol === 'HY')) || isBoxSection;
